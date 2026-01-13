@@ -3,8 +3,12 @@ import {
   redisConnection,
   type WorkflowExecutionJobData,
 } from '@aflow/queue';
+import { WorkflowExecutor } from '@aflow/workflow-core';
 
 console.log('[worker] started');
+
+// Create workflow executor instance
+const workflowExecutor = new WorkflowExecutor();
 
 // Create worker to process jobs
 const worker = new Worker<WorkflowExecutionJobData>(
@@ -14,10 +18,21 @@ const worker = new Worker<WorkflowExecutionJobData>(
       console.log(`[worker] Job started: ${job.id}`);
       console.log(`[worker] workflowId: ${job.data.workflowId}`);
 
-      // Job processing logic would go here
-      // For now, we just log and complete the job
+      // Execute workflow
+      const result = await workflowExecutor.execute(
+        job.data.workflowId,
+        job.data.triggerPayload,
+      );
 
-      return { completed: true };
+      if (!result.success) {
+        throw new Error(result.error || 'Workflow execution failed');
+      }
+
+      console.log(`[worker] Job completed: ${job.id}`);
+      return {
+        completed: true,
+        context: result.context,
+      };
     } catch (error) {
       // Handle unexpected errors gracefully
       console.error(`[worker] Error processing job ${job.id}:`, error);

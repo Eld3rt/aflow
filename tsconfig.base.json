@@ -18,7 +18,9 @@
       "@aflow/db": ["./packages/db"],
       "@aflow/db/*": ["./packages/db/*"],
       "@aflow/queue": ["./packages/queue"],
-      "@aflow/queue/*": ["./packages/queue/*"]
+      "@aflow/queue/*": ["./packages/queue/*"],
+      "@aflow/workflow-core": ["./packages/workflow-core"],
+      "@aflow/workflow-core/*": ["./packages/workflow-core/*"]
     }
   }
 }

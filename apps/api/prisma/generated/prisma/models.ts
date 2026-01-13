@@ -8,7 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Workflow'
-export type * from './models/Trigger'
-export type * from './models/Step'
-export type * from './commonInputTypes'
+export type * from './models/Workflow.js'
+export type * from './models/Trigger.js'
+export type * from './models/Step.js'
+export type * from './commonInputTypes.js'

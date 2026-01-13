@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import { workflowsRouter } from './routes/workflows.js';
 
 dotenv.config();
 
@@ -9,6 +10,8 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/workflows', workflowsRouter);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

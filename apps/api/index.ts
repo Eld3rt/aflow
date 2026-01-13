@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { workflowsRouter } from './routes/workflows.js';
 import { webhooksRouter } from './routes/webhooks.js';
+import { initializeCronSchedules } from './scheduler.js';
 
 dotenv.config();
 
@@ -16,6 +17,10 @@ app.use('/workflows', workflowsRouter);
 app.use('/webhooks', webhooksRouter);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`[api] listening on port ${PORT}`);
+
+// Initialize cron schedules on startup
+initializeCronSchedules().then(() => {
+  app.listen(PORT, () => {
+    console.log(`[api] listening on port ${PORT}`);
+  });
 });

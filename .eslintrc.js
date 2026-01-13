@@ -1,0 +1,12 @@
+module.exports = {
+  root: true,
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+  },
+  extends: ['eslint:recommended', 'prettier'],
+  rules: {
+    'no-unused-vars': 'error',
+    'no-console': 'off',
+  },
+}

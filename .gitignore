@@ -1,0 +1,27 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build outputs
+dist
+.next
+out
+
+# env
+.env
+.env.*
+
+# prisma
+apps/api/prisma/migrations
+
+# logs
+*.log
+
+# OS / IDE
+.DS_Store
+.idea
+.vscode
+
+# cursor
+
+cursor

@@ -6,7 +6,7 @@ export interface WorkflowExecutionJobData {
   triggerPayload?: Record<string, unknown>;
 }
 
-const redisConnection = new Redis({
+export const redisConnection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '5012', 10),
   maxRetriesPerRequest: null,

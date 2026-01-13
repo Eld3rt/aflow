@@ -1,5 +1,8 @@
 import { Worker } from 'bullmq';
-import { redisConnection, type WorkflowExecutionJobData } from './queue.js';
+import {
+  redisConnection,
+  type WorkflowExecutionJobData,
+} from '@aflow/queue';
 
 console.log('[worker] started');
 

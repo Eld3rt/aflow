@@ -12,6 +12,13 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@aflow/db": ["./packages/db"],
+      "@aflow/db/*": ["./packages/db/*"],
+      "@aflow/queue": ["./packages/queue"],
+      "@aflow/queue/*": ["./packages/queue/*"]
+    }
   }
 }

@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import type * as runtime from '@prisma/client/runtime/client';
-import { prisma } from '../prisma/prisma.js';
+import { prisma, type InputJsonValue } from '@aflow/db';
 import {
   validateCreateWorkflowRequest,
   validateUpdateWorkflowRequest,
@@ -79,7 +78,7 @@ router.post('/', async (req, res) => {
         await tx.trigger.create({
           data: {
             type: trigger.type,
-            config: trigger.config as runtime.InputJsonValue,
+            config: trigger.config as InputJsonValue,
             workflowId: createdWorkflow.id,
           },
         });
@@ -90,7 +89,7 @@ router.post('/', async (req, res) => {
         await tx.step.createMany({
           data: steps.map((step) => ({
             type: step.type,
-            config: step.config as runtime.InputJsonValue,
+            config: step.config as InputJsonValue,
             order: step.order,
             workflowId: createdWorkflow.id,
           })),
@@ -205,7 +204,7 @@ router.put('/:id', async (req, res) => {
         await tx.trigger.create({
           data: {
             type: trigger.type,
-            config: trigger.config as runtime.InputJsonValue,
+            config: trigger.config as InputJsonValue,
             workflowId: id,
           },
         });
@@ -216,7 +215,7 @@ router.put('/:id', async (req, res) => {
         await tx.step.createMany({
           data: steps.map((step) => ({
             type: step.type,
-            config: step.config as runtime.InputJsonValue,
+            config: step.config as InputJsonValue,
             order: step.order,
             workflowId: id,
           })),

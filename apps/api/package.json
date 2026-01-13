@@ -12,6 +12,7 @@
   "packageManager": "pnpm@10.28.0",
   "dependencies": {
     "@aflow/db": "workspace:*",
+    "@aflow/queue": "workspace:*",
     "dotenv": "^17.2.3",
     "express": "^5.2.1"
   },

@@ -5,6 +5,7 @@ import {
   HttpActionExecutor,
   EmailActionExecutor,
   TelegramActionExecutor,
+  DatabaseActionExecutor,
 } from '@aflow/integrations';
 
 console.log('[worker] started');
@@ -13,6 +14,7 @@ console.log('[worker] started');
 stepExecutorRegistry.register('http', new HttpActionExecutor());
 stepExecutorRegistry.register('email', new EmailActionExecutor());
 stepExecutorRegistry.register('telegram', new TelegramActionExecutor());
+stepExecutorRegistry.register('database', new DatabaseActionExecutor());
 
 // Create workflow executor instance
 const workflowExecutor = new WorkflowExecutor();

@@ -162,9 +162,15 @@ importers:
       '@aflow/workflow-core':
         specifier: workspace:*
         version: link:../workflow-core
+      mysql2:
+        specifier: ^3.11.5
+        version: 3.15.3
       nodemailer:
         specifier: ^6.9.16
         version: 6.10.1
+      pg:
+        specifier: ^8.16.3
+        version: 8.16.3
     devDependencies:
       '@types/node':
         specifier: ^25.0.8
@@ -172,6 +178,9 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.17
         version: 6.4.21
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

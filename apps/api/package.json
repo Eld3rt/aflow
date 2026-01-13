@@ -1,6 +1,7 @@
 {
   "name": "aflow-api",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "ts-node index.ts"

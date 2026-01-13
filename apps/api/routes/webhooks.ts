@@ -1,8 +1,65 @@
 import { Router } from 'express';
 import { prisma } from '@aflow/db';
 import { workflowExecutionQueue } from '@aflow/queue';
+import {
+  normalizeEmailPayload,
+  type NormalizedEmailPayload,
+} from '../utils/email.js';
 
 const router = Router();
+
+/**
+ * POST /webhooks/email
+ * Generic email webhook endpoint (provider-agnostic).
+ * Normalizes email payload and triggers all active workflows with email triggers.
+ */
+router.post('/email', async (req, res) => {
+  try {
+    // Normalize email payload from any provider format
+    const normalizedEmail: NormalizedEmailPayload = normalizeEmailPayload(
+      req.body,
+    );
+
+    // Find all active workflows with email triggers
+    const workflows = await prisma.workflow.findMany({
+      where: {
+        status: 'active',
+        trigger: {
+          type: 'email',
+        },
+      },
+      include: {
+        trigger: true,
+      },
+    });
+
+    // Enqueue workflow execution jobs for each matching workflow
+    const enqueuePromises = workflows.map((workflow) =>
+      workflowExecutionQueue.add('workflow-execution', {
+        workflowId: workflow.id,
+        triggerPayload: { ...normalizedEmail },
+      }),
+    );
+
+    await Promise.all(enqueuePromises);
+
+    // Return success response immediately (workflows execute in background)
+    res.status(200).json({
+      success: true,
+      message: 'Email webhook received and workflow executions enqueued',
+      workflowsTriggered: workflows.length,
+      email: {
+        from: normalizedEmail.from,
+        subject: normalizedEmail.subject,
+      },
+    });
+  } catch (error) {
+    console.error('Error processing email webhook:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
 
 /**
  * POST /webhooks/:triggerId

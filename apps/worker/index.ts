@@ -1,13 +1,18 @@
 import { Worker } from 'bullmq';
 import { redisConnection, type WorkflowExecutionJobData } from '@aflow/queue';
 import { WorkflowExecutor, stepExecutorRegistry } from '@aflow/workflow-core';
-import { HttpActionExecutor, EmailActionExecutor } from '@aflow/integrations';
+import {
+  HttpActionExecutor,
+  EmailActionExecutor,
+  TelegramActionExecutor,
+} from '@aflow/integrations';
 
 console.log('[worker] started');
 
 // Register step executors
 stepExecutorRegistry.register('http', new HttpActionExecutor());
 stepExecutorRegistry.register('email', new EmailActionExecutor());
+stepExecutorRegistry.register('telegram', new TelegramActionExecutor());
 
 // Create workflow executor instance
 const workflowExecutor = new WorkflowExecutor();

@@ -6,3 +6,41 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Workflow {
+  id        String   @id @default(uuid())
+  name      String
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trigger Trigger?
+  steps   Step[]
+
+  @@map("workflows")
+}
+
+model Trigger {
+  id         String   @id @default(uuid())
+  type       String
+  config     Json
+  workflowId String   @unique
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("triggers")
+}
+
+model Step {
+  id         String   @id @default(uuid())
+  type       String
+  config     Json
+  order      Int
+  workflowId String
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("steps")
+}

@@ -1,11 +1,12 @@
 import { Worker } from 'bullmq';
-import {
-  redisConnection,
-  type WorkflowExecutionJobData,
-} from '@aflow/queue';
-import { WorkflowExecutor } from '@aflow/workflow-core';
+import { redisConnection, type WorkflowExecutionJobData } from '@aflow/queue';
+import { WorkflowExecutor, stepExecutorRegistry } from '@aflow/workflow-core';
+import { HttpActionExecutor } from '@aflow/integrations';
 
 console.log('[worker] started');
+
+// Register step executors
+stepExecutorRegistry.register('http', new HttpActionExecutor());
 
 // Create workflow executor instance
 const workflowExecutor = new WorkflowExecutor();

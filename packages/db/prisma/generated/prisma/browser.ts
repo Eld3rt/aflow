@@ -37,3 +37,8 @@ export type Step = Prisma.StepModel
  * 
  */
 export type WorkflowExecution = Prisma.WorkflowExecutionModel
+/**
+ * Model NotificationConfig
+ * 
+ */
+export type NotificationConfig = Prisma.NotificationConfigModel

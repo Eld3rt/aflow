@@ -147,11 +147,15 @@ export class WorkflowExecutor {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
 
-          if (errorPolicy.mode === 'pause' || errorPolicy.mode === 'pauseUntil') {
+          if (
+            errorPolicy.mode === 'pause' ||
+            errorPolicy.mode === 'pauseUntil'
+          ) {
             // Pause execution
-            const resumeAt = errorPolicy.mode === 'pauseUntil' && errorPolicy.resumeAt
-              ? new Date(errorPolicy.resumeAt)
-              : null;
+            const resumeAt =
+              errorPolicy.mode === 'pauseUntil' && errorPolicy.resumeAt
+                ? new Date(errorPolicy.resumeAt)
+                : null;
 
             await prisma.workflowExecution.update({
               where: { id: execution.id },
@@ -224,6 +228,7 @@ export class WorkflowExecutor {
         success: false,
         context,
         error: errorMessage,
+        executionId: execution.id,
       };
     }
   }
@@ -307,7 +312,9 @@ export class WorkflowExecutor {
    * @param stepConfig - Step configuration
    * @returns Error policy configuration with defaults applied
    */
-  private getErrorPolicy(stepConfig: Record<string, unknown>): ErrorPolicyConfig {
+  private getErrorPolicy(
+    stepConfig: Record<string, unknown>,
+  ): ErrorPolicyConfig {
     const errorPolicyRaw = stepConfig._errorPolicy;
 
     // Default: fail on error

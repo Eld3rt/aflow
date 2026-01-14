@@ -15,6 +15,7 @@ import {
   EmailActionExecutor,
   TelegramActionExecutor,
   DatabaseActionExecutor,
+  NotificationService,
 } from '@aflow/integrations';
 
 console.log('[worker] started');
@@ -28,6 +29,9 @@ stepExecutorRegistry.register('transform', new TransformActionExecutor());
 
 // Create workflow executor instance
 const workflowExecutor = new WorkflowExecutor();
+
+// Create notification service instance
+const notificationService = new NotificationService();
 
 // Create worker to process jobs
 const worker = new Worker<WorkflowExecutionJobData>(
@@ -98,14 +102,40 @@ const worker = new Worker<WorkflowExecutionJobData>(
         job.data.executionId,
       );
 
-      // If execution was paused, handle delayed retry if needed
-      if (result.paused) {
+      // If execution was paused, handle delayed retry if needed and send notifications
+      if (result.paused && result.executionId) {
         console.log(
           `[worker] Execution paused: ${result.executionId}, resumeAt: ${result.resumeAt || 'manual'}`,
         );
 
+        // Load execution details for notification
+        const execution = await prisma.workflowExecution.findUnique({
+          where: { id: result.executionId },
+        });
+
+        if (execution) {
+          // Send pause notification (fire-and-forget)
+          notificationService
+            .sendNotifications(
+              job.data.workflowId,
+              result.executionId,
+              'paused',
+              execution.currentStepOrder,
+              execution.error,
+              execution.pausedAt,
+              execution.resumeAt,
+            )
+            .catch((error) => {
+              // Notification errors should not affect execution
+              console.error(
+                `[worker] Error sending pause notification:`,
+                error,
+              );
+            });
+        }
+
         // If resumeAt is set (pauseUntil), enqueue delayed job
-        if (result.resumeAt && result.executionId) {
+        if (result.resumeAt) {
           const resumeAt = new Date(result.resumeAt);
           const now = new Date();
           const delay = resumeAt.getTime() - now.getTime();
@@ -141,6 +171,32 @@ const worker = new Worker<WorkflowExecutionJobData>(
       }
 
       if (!result.success) {
+        // Load execution details for notification before throwing
+        if (result.executionId) {
+          const execution = await prisma.workflowExecution.findUnique({
+            where: { id: result.executionId },
+          });
+
+          if (execution) {
+            // Send failure notification (fire-and-forget)
+            notificationService
+              .sendNotifications(
+                job.data.workflowId,
+                result.executionId,
+                'failed',
+                execution.currentStepOrder,
+                execution.error,
+              )
+              .catch((error) => {
+                // Notification errors should not affect execution
+                console.error(
+                  `[worker] Error sending failure notification:`,
+                  error,
+                );
+              });
+          }
+        }
+
         throw new Error(result.error || 'Workflow execution failed');
       }
 

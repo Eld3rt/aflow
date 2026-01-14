@@ -185,6 +185,7 @@ export type WorkflowWhereInput = {
   trigger?: Prisma.XOR<Prisma.TriggerNullableScalarRelationFilter, Prisma.TriggerWhereInput> | null
   steps?: Prisma.StepListRelationFilter
   executions?: Prisma.WorkflowExecutionListRelationFilter
+  notificationConfigs?: Prisma.NotificationConfigListRelationFilter
 }
 
 export type WorkflowOrderByWithRelationInput = {
@@ -196,6 +197,7 @@ export type WorkflowOrderByWithRelationInput = {
   trigger?: Prisma.TriggerOrderByWithRelationInput
   steps?: Prisma.StepOrderByRelationAggregateInput
   executions?: Prisma.WorkflowExecutionOrderByRelationAggregateInput
+  notificationConfigs?: Prisma.NotificationConfigOrderByRelationAggregateInput
 }
 
 export type WorkflowWhereUniqueInput = Prisma.AtLeast<{
@@ -210,6 +212,7 @@ export type WorkflowWhereUniqueInput = Prisma.AtLeast<{
   trigger?: Prisma.XOR<Prisma.TriggerNullableScalarRelationFilter, Prisma.TriggerWhereInput> | null
   steps?: Prisma.StepListRelationFilter
   executions?: Prisma.WorkflowExecutionListRelationFilter
+  notificationConfigs?: Prisma.NotificationConfigListRelationFilter
 }, "id">
 
 export type WorkflowOrderByWithAggregationInput = {
@@ -243,6 +246,7 @@ export type WorkflowCreateInput = {
   trigger?: Prisma.TriggerCreateNestedOneWithoutWorkflowInput
   steps?: Prisma.StepCreateNestedManyWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowUncheckedCreateInput = {
@@ -254,6 +258,7 @@ export type WorkflowUncheckedCreateInput = {
   trigger?: Prisma.TriggerUncheckedCreateNestedOneWithoutWorkflowInput
   steps?: Prisma.StepUncheckedCreateNestedManyWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionUncheckedCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowUpdateInput = {
@@ -265,6 +270,7 @@ export type WorkflowUpdateInput = {
   trigger?: Prisma.TriggerUpdateOneWithoutWorkflowNestedInput
   steps?: Prisma.StepUpdateManyWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowUncheckedUpdateInput = {
@@ -276,6 +282,7 @@ export type WorkflowUncheckedUpdateInput = {
   trigger?: Prisma.TriggerUncheckedUpdateOneWithoutWorkflowNestedInput
   steps?: Prisma.StepUncheckedUpdateManyWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUncheckedUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowCreateManyInput = {
@@ -381,6 +388,20 @@ export type WorkflowUpdateOneRequiredWithoutExecutionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkflowUpdateToOneWithWhereWithoutExecutionsInput, Prisma.WorkflowUpdateWithoutExecutionsInput>, Prisma.WorkflowUncheckedUpdateWithoutExecutionsInput>
 }
 
+export type WorkflowCreateNestedOneWithoutNotificationConfigsInput = {
+  create?: Prisma.XOR<Prisma.WorkflowCreateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedCreateWithoutNotificationConfigsInput>
+  connectOrCreate?: Prisma.WorkflowCreateOrConnectWithoutNotificationConfigsInput
+  connect?: Prisma.WorkflowWhereUniqueInput
+}
+
+export type WorkflowUpdateOneRequiredWithoutNotificationConfigsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkflowCreateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedCreateWithoutNotificationConfigsInput>
+  connectOrCreate?: Prisma.WorkflowCreateOrConnectWithoutNotificationConfigsInput
+  upsert?: Prisma.WorkflowUpsertWithoutNotificationConfigsInput
+  connect?: Prisma.WorkflowWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkflowUpdateToOneWithWhereWithoutNotificationConfigsInput, Prisma.WorkflowUpdateWithoutNotificationConfigsInput>, Prisma.WorkflowUncheckedUpdateWithoutNotificationConfigsInput>
+}
+
 export type WorkflowCreateWithoutTriggerInput = {
   id?: string
   name: string
@@ -389,6 +410,7 @@ export type WorkflowCreateWithoutTriggerInput = {
   updatedAt?: Date | string
   steps?: Prisma.StepCreateNestedManyWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowUncheckedCreateWithoutTriggerInput = {
@@ -399,6 +421,7 @@ export type WorkflowUncheckedCreateWithoutTriggerInput = {
   updatedAt?: Date | string
   steps?: Prisma.StepUncheckedCreateNestedManyWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionUncheckedCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowCreateOrConnectWithoutTriggerInput = {
@@ -425,6 +448,7 @@ export type WorkflowUpdateWithoutTriggerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   steps?: Prisma.StepUpdateManyWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowUncheckedUpdateWithoutTriggerInput = {
@@ -435,6 +459,7 @@ export type WorkflowUncheckedUpdateWithoutTriggerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   steps?: Prisma.StepUncheckedUpdateManyWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUncheckedUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowCreateWithoutStepsInput = {
@@ -445,6 +470,7 @@ export type WorkflowCreateWithoutStepsInput = {
   updatedAt?: Date | string
   trigger?: Prisma.TriggerCreateNestedOneWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowUncheckedCreateWithoutStepsInput = {
@@ -455,6 +481,7 @@ export type WorkflowUncheckedCreateWithoutStepsInput = {
   updatedAt?: Date | string
   trigger?: Prisma.TriggerUncheckedCreateNestedOneWithoutWorkflowInput
   executions?: Prisma.WorkflowExecutionUncheckedCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowCreateOrConnectWithoutStepsInput = {
@@ -481,6 +508,7 @@ export type WorkflowUpdateWithoutStepsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.TriggerUpdateOneWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowUncheckedUpdateWithoutStepsInput = {
@@ -491,6 +519,7 @@ export type WorkflowUncheckedUpdateWithoutStepsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.TriggerUncheckedUpdateOneWithoutWorkflowNestedInput
   executions?: Prisma.WorkflowExecutionUncheckedUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowCreateWithoutExecutionsInput = {
@@ -501,6 +530,7 @@ export type WorkflowCreateWithoutExecutionsInput = {
   updatedAt?: Date | string
   trigger?: Prisma.TriggerCreateNestedOneWithoutWorkflowInput
   steps?: Prisma.StepCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowUncheckedCreateWithoutExecutionsInput = {
@@ -511,6 +541,7 @@ export type WorkflowUncheckedCreateWithoutExecutionsInput = {
   updatedAt?: Date | string
   trigger?: Prisma.TriggerUncheckedCreateNestedOneWithoutWorkflowInput
   steps?: Prisma.StepUncheckedCreateNestedManyWithoutWorkflowInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedCreateNestedManyWithoutWorkflowInput
 }
 
 export type WorkflowCreateOrConnectWithoutExecutionsInput = {
@@ -537,6 +568,7 @@ export type WorkflowUpdateWithoutExecutionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.TriggerUpdateOneWithoutWorkflowNestedInput
   steps?: Prisma.StepUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUpdateManyWithoutWorkflowNestedInput
 }
 
 export type WorkflowUncheckedUpdateWithoutExecutionsInput = {
@@ -547,6 +579,67 @@ export type WorkflowUncheckedUpdateWithoutExecutionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.TriggerUncheckedUpdateOneWithoutWorkflowNestedInput
   steps?: Prisma.StepUncheckedUpdateManyWithoutWorkflowNestedInput
+  notificationConfigs?: Prisma.NotificationConfigUncheckedUpdateManyWithoutWorkflowNestedInput
+}
+
+export type WorkflowCreateWithoutNotificationConfigsInput = {
+  id?: string
+  name: string
+  status: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  trigger?: Prisma.TriggerCreateNestedOneWithoutWorkflowInput
+  steps?: Prisma.StepCreateNestedManyWithoutWorkflowInput
+  executions?: Prisma.WorkflowExecutionCreateNestedManyWithoutWorkflowInput
+}
+
+export type WorkflowUncheckedCreateWithoutNotificationConfigsInput = {
+  id?: string
+  name: string
+  status: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  trigger?: Prisma.TriggerUncheckedCreateNestedOneWithoutWorkflowInput
+  steps?: Prisma.StepUncheckedCreateNestedManyWithoutWorkflowInput
+  executions?: Prisma.WorkflowExecutionUncheckedCreateNestedManyWithoutWorkflowInput
+}
+
+export type WorkflowCreateOrConnectWithoutNotificationConfigsInput = {
+  where: Prisma.WorkflowWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkflowCreateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedCreateWithoutNotificationConfigsInput>
+}
+
+export type WorkflowUpsertWithoutNotificationConfigsInput = {
+  update: Prisma.XOR<Prisma.WorkflowUpdateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedUpdateWithoutNotificationConfigsInput>
+  create: Prisma.XOR<Prisma.WorkflowCreateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedCreateWithoutNotificationConfigsInput>
+  where?: Prisma.WorkflowWhereInput
+}
+
+export type WorkflowUpdateToOneWithWhereWithoutNotificationConfigsInput = {
+  where?: Prisma.WorkflowWhereInput
+  data: Prisma.XOR<Prisma.WorkflowUpdateWithoutNotificationConfigsInput, Prisma.WorkflowUncheckedUpdateWithoutNotificationConfigsInput>
+}
+
+export type WorkflowUpdateWithoutNotificationConfigsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trigger?: Prisma.TriggerUpdateOneWithoutWorkflowNestedInput
+  steps?: Prisma.StepUpdateManyWithoutWorkflowNestedInput
+  executions?: Prisma.WorkflowExecutionUpdateManyWithoutWorkflowNestedInput
+}
+
+export type WorkflowUncheckedUpdateWithoutNotificationConfigsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trigger?: Prisma.TriggerUncheckedUpdateOneWithoutWorkflowNestedInput
+  steps?: Prisma.StepUncheckedUpdateManyWithoutWorkflowNestedInput
+  executions?: Prisma.WorkflowExecutionUncheckedUpdateManyWithoutWorkflowNestedInput
 }
 
 
@@ -557,11 +650,13 @@ export type WorkflowUncheckedUpdateWithoutExecutionsInput = {
 export type WorkflowCountOutputType = {
   steps: number
   executions: number
+  notificationConfigs: number
 }
 
 export type WorkflowCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   steps?: boolean | WorkflowCountOutputTypeCountStepsArgs
   executions?: boolean | WorkflowCountOutputTypeCountExecutionsArgs
+  notificationConfigs?: boolean | WorkflowCountOutputTypeCountNotificationConfigsArgs
 }
 
 /**
@@ -588,6 +683,13 @@ export type WorkflowCountOutputTypeCountExecutionsArgs<ExtArgs extends runtime.T
   where?: Prisma.WorkflowExecutionWhereInput
 }
 
+/**
+ * WorkflowCountOutputType without action
+ */
+export type WorkflowCountOutputTypeCountNotificationConfigsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationConfigWhereInput
+}
+
 
 export type WorkflowSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -598,6 +700,7 @@ export type WorkflowSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   trigger?: boolean | Prisma.Workflow$triggerArgs<ExtArgs>
   steps?: boolean | Prisma.Workflow$stepsArgs<ExtArgs>
   executions?: boolean | Prisma.Workflow$executionsArgs<ExtArgs>
+  notificationConfigs?: boolean | Prisma.Workflow$notificationConfigsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkflowCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workflow"]>
 
@@ -630,6 +733,7 @@ export type WorkflowInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   trigger?: boolean | Prisma.Workflow$triggerArgs<ExtArgs>
   steps?: boolean | Prisma.Workflow$stepsArgs<ExtArgs>
   executions?: boolean | Prisma.Workflow$executionsArgs<ExtArgs>
+  notificationConfigs?: boolean | Prisma.Workflow$notificationConfigsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkflowCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkflowIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -641,6 +745,7 @@ export type $WorkflowPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     trigger: Prisma.$TriggerPayload<ExtArgs> | null
     steps: Prisma.$StepPayload<ExtArgs>[]
     executions: Prisma.$WorkflowExecutionPayload<ExtArgs>[]
+    notificationConfigs: Prisma.$NotificationConfigPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1045,6 +1150,7 @@ export interface Prisma__WorkflowClient<T, Null = never, ExtArgs extends runtime
   trigger<T extends Prisma.Workflow$triggerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workflow$triggerArgs<ExtArgs>>): Prisma.Prisma__TriggerClient<runtime.Types.Result.GetResult<Prisma.$TriggerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   steps<T extends Prisma.Workflow$stepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workflow$stepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   executions<T extends Prisma.Workflow$executionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workflow$executionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkflowExecutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  notificationConfigs<T extends Prisma.Workflow$notificationConfigsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workflow$notificationConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1531,6 +1637,30 @@ export type Workflow$executionsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.WorkflowExecutionScalarFieldEnum | Prisma.WorkflowExecutionScalarFieldEnum[]
+}
+
+/**
+ * Workflow.notificationConfigs
+ */
+export type Workflow$notificationConfigsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the NotificationConfig
+   */
+  select?: Prisma.NotificationConfigSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the NotificationConfig
+   */
+  omit?: Prisma.NotificationConfigOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationConfigInclude<ExtArgs> | null
+  where?: Prisma.NotificationConfigWhereInput
+  orderBy?: Prisma.NotificationConfigOrderByWithRelationInput | Prisma.NotificationConfigOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationConfigWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationConfigScalarFieldEnum | Prisma.NotificationConfigScalarFieldEnum[]
 }
 
 /**

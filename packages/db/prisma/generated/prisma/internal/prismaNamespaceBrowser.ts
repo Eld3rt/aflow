@@ -54,7 +54,8 @@ export const ModelName = {
   Workflow: 'Workflow',
   Trigger: 'Trigger',
   Step: 'Step',
-  WorkflowExecution: 'WorkflowExecution'
+  WorkflowExecution: 'WorkflowExecution',
+  NotificationConfig: 'NotificationConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -121,6 +122,20 @@ export const WorkflowExecutionScalarFieldEnum = {
 } as const
 
 export type WorkflowExecutionScalarFieldEnum = (typeof WorkflowExecutionScalarFieldEnum)[keyof typeof WorkflowExecutionScalarFieldEnum]
+
+
+export const NotificationConfigScalarFieldEnum = {
+  id: 'id',
+  workflowId: 'workflowId',
+  type: 'type',
+  config: 'config',
+  onFailure: 'onFailure',
+  onPause: 'onPause',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationConfigScalarFieldEnum = (typeof NotificationConfigScalarFieldEnum)[keyof typeof NotificationConfigScalarFieldEnum]
 
 
 export const SortOrder = {

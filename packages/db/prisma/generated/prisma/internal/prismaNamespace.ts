@@ -387,7 +387,8 @@ export const ModelName = {
   Workflow: 'Workflow',
   Trigger: 'Trigger',
   Step: 'Step',
-  WorkflowExecution: 'WorkflowExecution'
+  WorkflowExecution: 'WorkflowExecution',
+  NotificationConfig: 'NotificationConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -403,7 +404,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workflow" | "trigger" | "step" | "workflowExecution"
+    modelProps: "workflow" | "trigger" | "step" | "workflowExecution" | "notificationConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -703,6 +704,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    NotificationConfig: {
+      payload: Prisma.$NotificationConfigPayload<ExtArgs>
+      fields: Prisma.NotificationConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NotificationConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NotificationConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.NotificationConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NotificationConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        findMany: {
+          args: Prisma.NotificationConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>[]
+        }
+        create: {
+          args: Prisma.NotificationConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        createMany: {
+          args: Prisma.NotificationConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NotificationConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.NotificationConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        update: {
+          args: Prisma.NotificationConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.NotificationConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NotificationConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NotificationConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.NotificationConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.NotificationConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNotificationConfig>
+        }
+        groupBy: {
+          args: Prisma.NotificationConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NotificationConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationConfigCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -790,6 +865,20 @@ export const WorkflowExecutionScalarFieldEnum = {
 } as const
 
 export type WorkflowExecutionScalarFieldEnum = (typeof WorkflowExecutionScalarFieldEnum)[keyof typeof WorkflowExecutionScalarFieldEnum]
+
+
+export const NotificationConfigScalarFieldEnum = {
+  id: 'id',
+  workflowId: 'workflowId',
+  type: 'type',
+  config: 'config',
+  onFailure: 'onFailure',
+  onPause: 'onPause',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationConfigScalarFieldEnum = (typeof NotificationConfigScalarFieldEnum)[keyof typeof NotificationConfigScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -891,6 +980,13 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1006,6 +1102,7 @@ export type GlobalOmitConfig = {
   trigger?: Prisma.TriggerOmit
   step?: Prisma.StepOmit
   workflowExecution?: Prisma.WorkflowExecutionOmit
+  notificationConfig?: Prisma.NotificationConfigOmit
 }
 
 /* Types for Logging */

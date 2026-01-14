@@ -14,9 +14,10 @@ model Workflow {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trigger    Trigger?
-  steps      Step[]
-  executions WorkflowExecution[]
+  trigger           Trigger?
+  steps             Step[]
+  executions        WorkflowExecution[]
+  notificationConfigs NotificationConfig[]
 
   @@map("workflows")
 }
@@ -61,4 +62,19 @@ model WorkflowExecution {
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("workflow_executions")
+}
+
+model NotificationConfig {
+  id         String   @id @default(uuid())
+  workflowId String
+  type       String   // email, webhook
+  config     Json     // Configuration: { to: string } for email, { url: string } for webhook
+  onFailure  Boolean  @default(true)  // Send notification on permanent failure
+  onPause    Boolean  @default(true)  // Send notification on pause
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("notification_configs")
 }

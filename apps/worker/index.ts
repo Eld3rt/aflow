@@ -1,6 +1,10 @@
 import { Worker } from 'bullmq';
 import { redisConnection, type WorkflowExecutionJobData } from '@aflow/queue';
-import { WorkflowExecutor, stepExecutorRegistry } from '@aflow/workflow-core';
+import {
+  WorkflowExecutor,
+  stepExecutorRegistry,
+  TransformActionExecutor,
+} from '@aflow/workflow-core';
 import {
   HttpActionExecutor,
   EmailActionExecutor,
@@ -15,6 +19,7 @@ stepExecutorRegistry.register('http', new HttpActionExecutor());
 stepExecutorRegistry.register('email', new EmailActionExecutor());
 stepExecutorRegistry.register('telegram', new TelegramActionExecutor());
 stepExecutorRegistry.register('database', new DatabaseActionExecutor());
+stepExecutorRegistry.register('transform', new TransformActionExecutor());
 
 // Create workflow executor instance
 const workflowExecutor = new WorkflowExecutor();

@@ -1,5 +1,6 @@
 export { WorkflowExecutor } from './executor.js';
 export { stepExecutorRegistry } from './step-executor.js';
+export { TransformActionExecutor } from './steps/transform/transform-action.js';
 export type {
   ExecutionContext,
   StepExecutionResult,

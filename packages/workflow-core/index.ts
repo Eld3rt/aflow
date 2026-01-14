@@ -8,3 +8,8 @@ export type {
   WorkflowExecutionResult,
 } from './types.js';
 export type { StepExecutor } from './step-executor.js';
+export {
+  logStepEvent,
+  type ExecutionLogEventType,
+  type ExecutionLogMetadata,
+} from './execution-logger.js';

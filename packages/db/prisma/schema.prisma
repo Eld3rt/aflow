@@ -60,6 +60,7 @@ model WorkflowExecution {
   updatedAt       DateTime @updatedAt
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  logs     ExecutionLog[]
 
   @@map("workflow_executions")
 }
@@ -77,4 +78,20 @@ model NotificationConfig {
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("notification_configs")
+}
+
+model ExecutionLog {
+  id          String   @id @default(uuid())
+  executionId String
+  stepId      String
+  stepOrder   Int
+  eventType   String   // started, completed, failed, paused, retried
+  timestamp   DateTime @default(now())
+  metadata    Json?    // Optional: { error?: string, retryCount?: number }
+  createdAt   DateTime @default(now())
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@map("execution_logs")
+  @@index([executionId, timestamp])
 }

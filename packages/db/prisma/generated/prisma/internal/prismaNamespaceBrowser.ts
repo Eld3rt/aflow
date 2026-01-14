@@ -55,7 +55,8 @@ export const ModelName = {
   Trigger: 'Trigger',
   Step: 'Step',
   WorkflowExecution: 'WorkflowExecution',
-  NotificationConfig: 'NotificationConfig'
+  NotificationConfig: 'NotificationConfig',
+  ExecutionLog: 'ExecutionLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -138,6 +139,20 @@ export const NotificationConfigScalarFieldEnum = {
 export type NotificationConfigScalarFieldEnum = (typeof NotificationConfigScalarFieldEnum)[keyof typeof NotificationConfigScalarFieldEnum]
 
 
+export const ExecutionLogScalarFieldEnum = {
+  id: 'id',
+  executionId: 'executionId',
+  stepId: 'stepId',
+  stepOrder: 'stepOrder',
+  eventType: 'eventType',
+  timestamp: 'timestamp',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type ExecutionLogScalarFieldEnum = (typeof ExecutionLogScalarFieldEnum)[keyof typeof ExecutionLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -151,6 +166,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull'
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {

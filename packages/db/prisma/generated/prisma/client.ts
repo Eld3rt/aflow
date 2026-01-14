@@ -64,3 +64,8 @@ export type WorkflowExecution = Prisma.WorkflowExecutionModel
  * 
  */
 export type NotificationConfig = Prisma.NotificationConfigModel
+/**
+ * Model ExecutionLog
+ * 
+ */
+export type ExecutionLog = Prisma.ExecutionLogModel

@@ -399,9 +399,8 @@ router.post('/:id/executions/:executionId/resume', async (req, res) => {
     // For delayed retry, calculate delay if resumeAt is set
     const now = new Date();
     const resumeAt = execution.resumeAt;
-    const delay = resumeAt && resumeAt > now
-      ? resumeAt.getTime() - now.getTime()
-      : 0;
+    const delay =
+      resumeAt && resumeAt > now ? resumeAt.getTime() - now.getTime() : 0;
 
     await workflowExecutionQueue.add(
       'workflow-execution',
@@ -428,6 +427,58 @@ router.post('/:id/executions/:executionId/resume', async (req, res) => {
     });
   } catch (error) {
     console.error('Error resuming execution:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /workflows/:id/executions/:executionId/logs
+router.get('/:id/executions/:executionId/logs', async (req, res) => {
+  const { id, executionId } = req.params;
+
+  try {
+    // Verify workflow exists
+    const workflow = await prisma.workflow.findUnique({
+      where: { id },
+    });
+
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+
+    // Fetch execution
+    const execution = await prisma.workflowExecution.findUnique({
+      where: { id: executionId },
+    });
+
+    if (!execution) {
+      return res.status(404).json({ error: 'Execution not found' });
+    }
+
+    // Verify execution belongs to workflow
+    if (execution.workflowId !== id) {
+      return res.status(404).json({ error: 'Execution not found' });
+    }
+
+    // Fetch logs for this execution, ordered by timestamp
+    const logs = await prisma.executionLog.findMany({
+      where: { executionId },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    res.status(200).json(
+      logs.map((log) => ({
+        id: log.id,
+        executionId: log.executionId,
+        stepId: log.stepId,
+        stepOrder: log.stepOrder,
+        eventType: log.eventType,
+        timestamp: log.timestamp.toISOString(),
+        metadata: log.metadata,
+        createdAt: log.createdAt.toISOString(),
+      })),
+    );
+  } catch (error) {
+    console.error('Error fetching execution logs:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

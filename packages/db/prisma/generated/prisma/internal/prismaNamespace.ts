@@ -388,7 +388,8 @@ export const ModelName = {
   Trigger: 'Trigger',
   Step: 'Step',
   WorkflowExecution: 'WorkflowExecution',
-  NotificationConfig: 'NotificationConfig'
+  NotificationConfig: 'NotificationConfig',
+  ExecutionLog: 'ExecutionLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workflow" | "trigger" | "step" | "workflowExecution" | "notificationConfig"
+    modelProps: "workflow" | "trigger" | "step" | "workflowExecution" | "notificationConfig" | "executionLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -778,6 +779,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ExecutionLog: {
+      payload: Prisma.$ExecutionLogPayload<ExtArgs>
+      fields: Prisma.ExecutionLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExecutionLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExecutionLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ExecutionLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExecutionLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        findMany: {
+          args: Prisma.ExecutionLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>[]
+        }
+        create: {
+          args: Prisma.ExecutionLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        createMany: {
+          args: Prisma.ExecutionLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExecutionLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ExecutionLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        update: {
+          args: Prisma.ExecutionLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ExecutionLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExecutionLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExecutionLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ExecutionLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ExecutionLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExecutionLog>
+        }
+        groupBy: {
+          args: Prisma.ExecutionLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecutionLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExecutionLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecutionLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -881,6 +956,20 @@ export const NotificationConfigScalarFieldEnum = {
 export type NotificationConfigScalarFieldEnum = (typeof NotificationConfigScalarFieldEnum)[keyof typeof NotificationConfigScalarFieldEnum]
 
 
+export const ExecutionLogScalarFieldEnum = {
+  id: 'id',
+  executionId: 'executionId',
+  stepId: 'stepId',
+  stepOrder: 'stepOrder',
+  eventType: 'eventType',
+  timestamp: 'timestamp',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type ExecutionLogScalarFieldEnum = (typeof ExecutionLogScalarFieldEnum)[keyof typeof ExecutionLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -894,6 +983,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1103,6 +1200,7 @@ export type GlobalOmitConfig = {
   step?: Prisma.StepOmit
   workflowExecution?: Prisma.WorkflowExecutionOmit
   notificationConfig?: Prisma.NotificationConfigOmit
+  executionLog?: Prisma.ExecutionLogOmit
 }
 
 /* Types for Logging */

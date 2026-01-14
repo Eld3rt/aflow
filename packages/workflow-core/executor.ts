@@ -6,6 +6,7 @@ import type {
   WorkflowExecutionResult,
 } from './types.js';
 import { stepExecutorRegistry } from './step-executor.js';
+import { logStepEvent } from './execution-logger.js';
 
 /**
  * Workflow execution engine.
@@ -103,6 +104,9 @@ export class WorkflowExecutor {
       });
     }
 
+    // At this point, execution is guaranteed to be non-null
+    const executionIdForLogging = execution.id;
+
     try {
       // Execute steps sequentially starting from currentStepOrder
       const stepsToExecute = workflow.steps.filter(
@@ -119,6 +123,14 @@ export class WorkflowExecutor {
         // Extract error policy from step config (if present)
         const errorPolicy = this.getErrorPolicy(stepConfig);
 
+        // Log step started
+        await logStepEvent(
+          executionIdForLogging,
+          step.id,
+          step.order,
+          'started',
+        );
+
         try {
           // Execute step with retry logic
           const result = await this.executeStepWithRetry(
@@ -126,10 +138,31 @@ export class WorkflowExecutor {
             stepConfig,
             context,
             retryConfig,
+            (retryCount: number) => {
+              // Log retry event
+              logStepEvent(
+                executionIdForLogging,
+                step.id,
+                step.order,
+                'retried',
+                { retryCount },
+              ).catch((error) => {
+                // Log errors should not crash execution
+                console.error(`[executor] Failed to log retry event:`, error);
+              });
+            },
           );
 
           // Accumulate step output into context
           Object.assign(context, result.output);
+
+          // Log step completed
+          await logStepEvent(
+            executionIdForLogging,
+            step.id,
+            step.order,
+            'completed',
+          );
 
           // Persist execution state after successful step
           const nextStepOrder = step.order + 1;
@@ -169,6 +202,15 @@ export class WorkflowExecutor {
               },
             });
 
+            // Log step paused
+            await logStepEvent(
+              executionIdForLogging,
+              step.id,
+              step.order,
+              'paused',
+              { error: errorMessage },
+            );
+
             return {
               success: false,
               context,
@@ -189,6 +231,15 @@ export class WorkflowExecutor {
               error: errorMessage,
             },
           });
+
+          // Log step failed
+          await logStepEvent(
+            executionIdForLogging,
+            step.id,
+            step.order,
+            'failed',
+            { error: errorMessage },
+          );
 
           throw error;
         }
@@ -239,6 +290,7 @@ export class WorkflowExecutor {
    * @param stepConfig - Step configuration
    * @param context - Current execution context
    * @param retryConfig - Retry configuration
+   * @param onRetry - Optional callback called when a retry occurs (receives retry count)
    * @returns Step execution result
    * @throws Error if step fails after all retries
    */
@@ -247,6 +299,7 @@ export class WorkflowExecutor {
     stepConfig: Record<string, unknown>,
     context: ExecutionContext,
     retryConfig: Required<StepRetryConfig>,
+    onRetry?: (retryCount: number) => void,
   ): Promise<import('./types.js').StepExecutionResult> {
     let lastError: Error | unknown;
     const maxAttempts = retryConfig.maxRetries + 1; // Initial attempt + retries
@@ -265,6 +318,11 @@ export class WorkflowExecutor {
           throw new Error(
             `Step failed after ${maxAttempts} attempts: ${errorMessage}`,
           );
+        }
+
+        // Call retry callback if provided (retryCount is 1-indexed: 1, 2, 3, ...)
+        if (onRetry) {
+          onRetry(attempt + 1);
         }
 
         // Calculate exponential backoff delay: initialDelay * 2^attemptNumber

@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 export interface WorkflowExecutionJobData {
   workflowId: string;
   triggerPayload?: Record<string, unknown>;
+  executionId?: string; // For resuming paused executions
 }
 
 export const redisConnection = new Redis({

@@ -386,7 +386,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Workflow: 'Workflow',
   Trigger: 'Trigger',
-  Step: 'Step'
+  Step: 'Step',
+  WorkflowExecution: 'WorkflowExecution'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -402,7 +403,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workflow" | "trigger" | "step"
+    modelProps: "workflow" | "trigger" | "step" | "workflowExecution"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -628,6 +629,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    WorkflowExecution: {
+      payload: Prisma.$WorkflowExecutionPayload<ExtArgs>
+      fields: Prisma.WorkflowExecutionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WorkflowExecutionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WorkflowExecutionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        findFirst: {
+          args: Prisma.WorkflowExecutionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WorkflowExecutionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        findMany: {
+          args: Prisma.WorkflowExecutionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>[]
+        }
+        create: {
+          args: Prisma.WorkflowExecutionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        createMany: {
+          args: Prisma.WorkflowExecutionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WorkflowExecutionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>[]
+        }
+        delete: {
+          args: Prisma.WorkflowExecutionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        update: {
+          args: Prisma.WorkflowExecutionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        deleteMany: {
+          args: Prisma.WorkflowExecutionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WorkflowExecutionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WorkflowExecutionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>[]
+        }
+        upsert: {
+          args: Prisma.WorkflowExecutionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WorkflowExecutionPayload>
+        }
+        aggregate: {
+          args: Prisma.WorkflowExecutionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWorkflowExecution>
+        }
+        groupBy: {
+          args: Prisma.WorkflowExecutionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WorkflowExecutionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WorkflowExecutionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WorkflowExecutionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -701,6 +776,22 @@ export const StepScalarFieldEnum = {
 export type StepScalarFieldEnum = (typeof StepScalarFieldEnum)[keyof typeof StepScalarFieldEnum]
 
 
+export const WorkflowExecutionScalarFieldEnum = {
+  id: 'id',
+  workflowId: 'workflowId',
+  status: 'status',
+  currentStepOrder: 'currentStepOrder',
+  context: 'context',
+  pausedAt: 'pausedAt',
+  resumeAt: 'resumeAt',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WorkflowExecutionScalarFieldEnum = (typeof WorkflowExecutionScalarFieldEnum)[keyof typeof WorkflowExecutionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -731,6 +822,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -906,6 +1005,7 @@ export type GlobalOmitConfig = {
   workflow?: Prisma.WorkflowOmit
   trigger?: Prisma.TriggerOmit
   step?: Prisma.StepOmit
+  workflowExecution?: Prisma.WorkflowExecutionOmit
 }
 
 /* Types for Logging */

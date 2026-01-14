@@ -32,3 +32,8 @@ export type Trigger = Prisma.TriggerModel
  * 
  */
 export type Step = Prisma.StepModel
+/**
+ * Model WorkflowExecution
+ * 
+ */
+export type WorkflowExecution = Prisma.WorkflowExecutionModel

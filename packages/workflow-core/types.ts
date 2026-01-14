@@ -13,12 +13,39 @@ export interface StepExecutionResult {
 }
 
 /**
+ * Error policy for step execution on failure.
+ * Can be specified in step config under _errorPolicy key.
+ */
+export type ErrorPolicy = 'fail' | 'pause' | 'pauseUntil';
+
+/**
+ * Error policy configuration for step execution.
+ * Can be specified in step config under _errorPolicy key.
+ */
+export interface ErrorPolicyConfig {
+  /**
+   * Error policy mode (default: 'fail').
+   * - 'fail': Throw error and stop execution (default behavior)
+   * - 'pause': Pause execution until manual resume
+   * - 'pauseUntil': Pause execution until specified timestamp (ISO string)
+   */
+  mode: ErrorPolicy;
+  /**
+   * Resume timestamp (ISO string). Required when mode is 'pauseUntil'.
+   */
+  resumeAt?: string;
+}
+
+/**
  * Result of executing an entire workflow.
  */
 export interface WorkflowExecutionResult {
   success: boolean;
   context: ExecutionContext;
   error?: string;
+  paused?: boolean;
+  executionId?: string;
+  resumeAt?: string;
 }
 
 /**

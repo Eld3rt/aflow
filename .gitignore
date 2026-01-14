@@ -13,7 +13,7 @@ out
 .env.*
 
 # prisma
-apps/api/prisma/migrations
+packages/db/prisma/migrations
 
 # logs
 *.log

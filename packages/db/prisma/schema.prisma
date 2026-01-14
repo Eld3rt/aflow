@@ -14,8 +14,9 @@ model Workflow {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trigger Trigger?
-  steps   Step[]
+  trigger    Trigger?
+  steps      Step[]
+  executions WorkflowExecution[]
 
   @@map("workflows")
 }
@@ -43,4 +44,21 @@ model Step {
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("steps")
+}
+
+model WorkflowExecution {
+  id              String   @id @default(uuid())
+  workflowId      String
+  status          String   // running, paused, failed, completed
+  currentStepOrder Int?    // Pointer to next step to execute (null if completed)
+  context         Json     // Accumulated execution context
+  pausedAt        DateTime?
+  resumeAt        DateTime? // For delayed retry (timestamp-based pause)
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_executions")
 }

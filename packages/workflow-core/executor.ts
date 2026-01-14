@@ -1,5 +1,6 @@
-import { prisma } from '@aflow/db';
+import { prisma, type InputJsonValue } from '@aflow/db';
 import type {
+  ErrorPolicyConfig,
   ExecutionContext,
   StepRetryConfig,
   WorkflowExecutionResult,
@@ -23,11 +24,13 @@ export class WorkflowExecutor {
    * Execute a workflow by ID.
    * @param workflowId - ID of workflow to execute
    * @param triggerPayload - Initial context data from trigger (optional)
+   * @param executionId - Optional execution ID for resuming a paused execution
    * @returns Execution result with final context
    */
   async execute(
     workflowId: string,
     triggerPayload?: Record<string, unknown>,
+    executionId?: string,
   ): Promise<WorkflowExecutionResult> {
     // Load workflow with trigger and steps from database
     const workflow = await prisma.workflow.findUnique({
@@ -48,40 +51,175 @@ export class WorkflowExecutor {
       };
     }
 
-    // Initialize execution context from trigger payload
-    const context: ExecutionContext = triggerPayload
-      ? { ...triggerPayload }
-      : {};
+    // Load persisted execution state if resuming
+    let execution = executionId
+      ? await prisma.workflowExecution.findUnique({
+          where: { id: executionId },
+        })
+      : null;
+
+    if (executionId && !execution) {
+      return {
+        success: false,
+        context: triggerPayload || {},
+        error: `Execution not found: ${executionId}`,
+      };
+    }
+
+    // Initialize execution context from persisted state or trigger payload
+    let context: ExecutionContext;
+    let startStepOrder: number;
+
+    if (execution) {
+      // Resume from existing execution (paused or other state)
+      context = (execution.context as ExecutionContext) || {};
+      startStepOrder = execution.currentStepOrder ?? 0;
+    } else {
+      // New execution
+      context = triggerPayload ? { ...triggerPayload } : {};
+      startStepOrder = 0;
+    }
+
+    // Create or update execution record
+    if (!execution) {
+      execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId,
+          status: 'running',
+          currentStepOrder: 0,
+          context: context as InputJsonValue,
+        },
+      });
+    } else {
+      // Update existing execution to running
+      execution = await prisma.workflowExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: 'running',
+          pausedAt: null,
+          resumeAt: null,
+          error: null,
+        },
+      });
+    }
 
     try {
-      // Execute steps sequentially by order
-      for (const step of workflow.steps) {
+      // Execute steps sequentially starting from currentStepOrder
+      const stepsToExecute = workflow.steps.filter(
+        (step) => step.order >= startStepOrder,
+      );
+
+      for (const step of stepsToExecute) {
         const executor = stepExecutorRegistry.get(step.type);
         const stepConfig = (step.config as Record<string, unknown>) || {};
 
         // Extract retry config from step config (if present)
         const retryConfig = this.getRetryConfig(stepConfig);
 
-        // Execute step with retry logic
-        const result = await this.executeStepWithRetry(
-          executor,
-          stepConfig,
-          context,
-          retryConfig,
-        );
+        // Extract error policy from step config (if present)
+        const errorPolicy = this.getErrorPolicy(stepConfig);
 
-        // Accumulate step output into context
-        Object.assign(context, result.output);
+        try {
+          // Execute step with retry logic
+          const result = await this.executeStepWithRetry(
+            executor,
+            stepConfig,
+            context,
+            retryConfig,
+          );
+
+          // Accumulate step output into context
+          Object.assign(context, result.output);
+
+          // Persist execution state after successful step
+          const nextStepOrder = step.order + 1;
+          const isLastStep = nextStepOrder >= workflow.steps.length;
+
+          execution = await prisma.workflowExecution.update({
+            where: { id: execution.id },
+            data: {
+              currentStepOrder: isLastStep ? null : nextStepOrder,
+              context: context as InputJsonValue,
+            },
+          });
+        } catch (error) {
+          // Step failed after all retries - check error policy
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          if (errorPolicy.mode === 'pause' || errorPolicy.mode === 'pauseUntil') {
+            // Pause execution
+            const resumeAt = errorPolicy.mode === 'pauseUntil' && errorPolicy.resumeAt
+              ? new Date(errorPolicy.resumeAt)
+              : null;
+
+            await prisma.workflowExecution.update({
+              where: { id: execution.id },
+              data: {
+                status: 'paused',
+                currentStepOrder: step.order, // Next step to execute is this failed step
+                context: context as InputJsonValue,
+                pausedAt: new Date(),
+                resumeAt,
+                error: errorMessage,
+              },
+            });
+
+            return {
+              success: false,
+              context,
+              error: errorMessage,
+              paused: true,
+              executionId: execution.id,
+              resumeAt: resumeAt?.toISOString(),
+            };
+          }
+
+          // Default: fail execution
+          await prisma.workflowExecution.update({
+            where: { id: execution.id },
+            data: {
+              status: 'failed',
+              currentStepOrder: step.order,
+              context: context as InputJsonValue,
+              error: errorMessage,
+            },
+          });
+
+          throw error;
+        }
       }
+
+      // All steps completed successfully
+      await prisma.workflowExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: 'completed',
+          currentStepOrder: null,
+          context: context as InputJsonValue,
+        },
+      });
 
       return {
         success: true,
         context,
       };
     } catch (error) {
-      // On repeated failure, mark workflow as failed and stop execution
+      // On failure, ensure execution state is persisted
       const errorMessage =
         error instanceof Error ? error.message : String(error);
+
+      // Only update if not already updated (paused or failed)
+      if (execution.status === 'running') {
+        await prisma.workflowExecution.update({
+          where: { id: execution.id },
+          data: {
+            status: 'failed',
+            error: errorMessage,
+          },
+        });
+      }
+
       return {
         success: false,
         context,
@@ -161,6 +299,54 @@ export class WorkflowExecutor {
           ? retryConfig.initialDelay
           : this.defaultRetryConfig.initialDelay,
     };
+  }
+
+  /**
+   * Extract error policy configuration from step config.
+   * Error policy can be specified under _errorPolicy key in step config.
+   * @param stepConfig - Step configuration
+   * @returns Error policy configuration with defaults applied
+   */
+  private getErrorPolicy(stepConfig: Record<string, unknown>): ErrorPolicyConfig {
+    const errorPolicyRaw = stepConfig._errorPolicy;
+
+    // Default: fail on error
+    if (!errorPolicyRaw) {
+      return { mode: 'fail' };
+    }
+
+    // If it's a string, treat as mode
+    if (typeof errorPolicyRaw === 'string') {
+      if (errorPolicyRaw === 'pause' || errorPolicyRaw === 'pauseUntil') {
+        return { mode: errorPolicyRaw };
+      }
+      return { mode: 'fail' };
+    }
+
+    // If it's an object, parse as ErrorPolicyConfig
+    if (typeof errorPolicyRaw === 'object') {
+      const errorPolicy = errorPolicyRaw as Partial<ErrorPolicyConfig>;
+      const mode = errorPolicy.mode || 'fail';
+
+      if (mode === 'pauseUntil') {
+        if (!errorPolicy.resumeAt || typeof errorPolicy.resumeAt !== 'string') {
+          // Invalid pauseUntil config - default to fail
+          return { mode: 'fail' };
+        }
+        return {
+          mode: 'pauseUntil',
+          resumeAt: errorPolicy.resumeAt,
+        };
+      }
+
+      if (mode === 'pause') {
+        return { mode: 'pause' };
+      }
+
+      return { mode: 'fail' };
+    }
+
+    return { mode: 'fail' };
   }
 
   /**

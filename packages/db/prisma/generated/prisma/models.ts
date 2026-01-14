@@ -11,4 +11,5 @@
 export type * from './models/Workflow.js'
 export type * from './models/Trigger.js'
 export type * from './models/Step.js'
+export type * from './models/WorkflowExecution.js'
 export type * from './commonInputTypes.js'

@@ -334,6 +334,24 @@ router.get('/:id/executions/:executionId', async (req, res) => {
       return res.status(404).json({ error: 'Execution not found' });
     }
 
+    // Calculate duration
+    // For paused executions, use pausedAt if available, otherwise updatedAt
+    // For completed/failed, use updatedAt
+    const endTime =
+      execution.status === 'paused' && execution.pausedAt
+        ? execution.pausedAt
+        : execution.updatedAt;
+    const durationMs = endTime.getTime() - execution.createdAt.getTime();
+    const durationSeconds = Math.floor(durationMs / 1000);
+
+    // Count unique steps executed (from logs)
+    const logs = await prisma.executionLog.findMany({
+      where: { executionId },
+      select: { stepId: true },
+    });
+    const uniqueStepIds = new Set(logs.map((log) => log.stepId));
+    const stepsCount = uniqueStepIds.size;
+
     res.status(200).json({
       id: execution.id,
       workflowId: execution.workflowId,
@@ -345,6 +363,10 @@ router.get('/:id/executions/:executionId', async (req, res) => {
       error: execution.error,
       createdAt: execution.createdAt.toISOString(),
       updatedAt: execution.updatedAt.toISOString(),
+      // Summary fields
+      duration: durationSeconds, // Duration in seconds
+      stepsCount: stepsCount,
+      failureReason: execution.error || null,
     });
   } catch (error) {
     console.error('Error fetching execution:', error);
@@ -479,6 +501,47 @@ router.get('/:id/executions/:executionId/logs', async (req, res) => {
     );
   } catch (error) {
     console.error('Error fetching execution logs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /workflows/:id/statistics
+router.get('/:id/statistics', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Verify workflow exists
+    const workflow = await prisma.workflow.findUnique({
+      where: { id },
+    });
+
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+
+    // Fetch all executions for this workflow
+    const executions = await prisma.workflowExecution.findMany({
+      where: { workflowId: id },
+      select: { status: true },
+    });
+
+    // Calculate statistics
+    const totalExecutions = executions.length;
+    const successCount = executions.filter(
+      (e) => e.status === 'completed',
+    ).length;
+    const failureCount = executions.filter((e) => e.status === 'failed').length;
+    const pausedCount = executions.filter((e) => e.status === 'paused').length;
+
+    res.status(200).json({
+      workflowId: id,
+      totalExecutions,
+      successCount,
+      failureCount,
+      pausedCount,
+    });
+  } catch (error) {
+    console.error('Error fetching workflow statistics:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

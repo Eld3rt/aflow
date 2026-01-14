@@ -34,11 +34,24 @@ router.post('/email', async (req, res) => {
     });
 
     // Enqueue workflow execution jobs for each matching workflow
+    // Retry configuration: minimal retries at job level since step-level retries handle transient failures
     const enqueuePromises = workflows.map((workflow) =>
-      workflowExecutionQueue.add('workflow-execution', {
-        workflowId: workflow.id,
-        triggerPayload: { ...normalizedEmail },
-      }),
+      workflowExecutionQueue.add(
+        'workflow-execution',
+        {
+          workflowId: workflow.id,
+          triggerPayload: { ...normalizedEmail },
+        },
+        {
+          // Job-level retry as safety net for catastrophic failures
+          // Step-level retries (in WorkflowExecutor) handle transient step failures
+          attempts: 2, // 1 initial attempt + 1 retry
+          backoff: {
+            type: 'exponential',
+            delay: 2000, // 2 seconds initial delay
+          },
+        },
+      ),
     );
 
     await Promise.all(enqueuePromises);
@@ -87,10 +100,23 @@ router.post('/:triggerId', async (req, res) => {
 
     // Enqueue workflow execution job
     // Job is enqueued asynchronously - request returns immediately
-    await workflowExecutionQueue.add('workflow-execution', {
-      workflowId: trigger.workflow.id,
-      triggerPayload: triggerPayload as Record<string, unknown>,
-    });
+    // Retry configuration: minimal retries at job level since step-level retries handle transient failures
+    await workflowExecutionQueue.add(
+      'workflow-execution',
+      {
+        workflowId: trigger.workflow.id,
+        triggerPayload: triggerPayload as Record<string, unknown>,
+      },
+      {
+        // Job-level retry as safety net for catastrophic failures
+        // Step-level retries (in WorkflowExecutor) handle transient step failures
+        attempts: 2, // 1 initial attempt + 1 retry
+        backoff: {
+          type: 'exponential',
+          delay: 2000, // 2 seconds initial delay
+        },
+      },
+    );
 
     // Return success response immediately (workflow executes in background)
     res.status(200).json({

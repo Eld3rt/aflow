@@ -20,3 +20,20 @@ export interface WorkflowExecutionResult {
   context: ExecutionContext;
   error?: string;
 }
+
+/**
+ * Retry configuration for step execution.
+ * Can be specified in step config under _retry key.
+ */
+export interface StepRetryConfig {
+  /**
+   * Maximum number of retry attempts (default: 3).
+   * Total attempts = maxRetries + 1 (initial attempt + retries).
+   */
+  maxRetries?: number;
+  /**
+   * Initial delay in milliseconds before first retry (default: 1000).
+   * Subsequent retries use exponential backoff: initialDelay * 2^attemptNumber.
+   */
+  initialDelay?: number;
+}

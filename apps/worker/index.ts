@@ -55,6 +55,12 @@ const worker = new Worker<WorkflowExecutionJobData>(
   },
   {
     connection: redisConnection,
+    // Retry configuration: Step-level retries are handled in WorkflowExecutor
+    // Job-level retries are configured when enqueuing jobs (see webhooks.ts)
+    limiter: {
+      max: 10, // Max jobs processed concurrently
+      duration: 1000, // Per duration (ms)
+    },
   },
 );
 

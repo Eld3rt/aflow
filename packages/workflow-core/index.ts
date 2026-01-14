@@ -4,6 +4,7 @@ export { TransformActionExecutor } from './steps/transform/transform-action.js';
 export type {
   ExecutionContext,
   StepExecutionResult,
+  StepRetryConfig,
   WorkflowExecutionResult,
 } from './types.js';
 export type { StepExecutor } from './step-executor.js';

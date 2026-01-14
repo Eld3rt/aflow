@@ -15,6 +15,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@/*": ["./*"],
       "@aflow/db": ["./packages/db"],
       "@aflow/db/*": ["./packages/db/*"],
       "@aflow/queue": ["./packages/queue"],
@@ -22,7 +23,13 @@
       "@aflow/workflow-core": ["./packages/workflow-core"],
       "@aflow/workflow-core/*": ["./packages/workflow-core/*"],
       "@aflow/integrations": ["./packages/integrations"],
-      "@aflow/integrations/*": ["./packages/integrations/*"]
+      "@aflow/integrations/*": ["./packages/integrations/*"],
+      "@aflow/web/app/*": ["./apps/web/src/app/*"],
+      "@aflow/web/pages/*": ["./apps/web/src/pages/*"],
+      "@aflow/web/widgets/*": ["./apps/web/src/widgets/*"],
+      "@aflow/web/features/*": ["./apps/web/src/features/*"],
+      "@aflow/web/entities/*": ["./apps/web/src/entities/*"],
+      "@aflow/web/shared/*": ["./apps/web/src/shared/*"]
     }
   }
 }

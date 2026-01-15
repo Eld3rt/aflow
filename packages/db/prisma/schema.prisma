@@ -7,16 +7,29 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id          String   @id @default(uuid())
+  clerkUserId String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workflows Workflow[]
+
+  @@map("users")
+}
+
 model Workflow {
   id        String   @id @default(uuid())
   name      String
   status    String
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trigger           Trigger?
-  steps             Step[]
-  executions        WorkflowExecution[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trigger             Trigger?
+  steps               Step[]
+  executions          WorkflowExecution[]
   notificationConfigs NotificationConfig[]
 
   @@map("workflows")
@@ -48,18 +61,18 @@ model Step {
 }
 
 model WorkflowExecution {
-  id              String   @id @default(uuid())
-  workflowId      String
-  status          String   // running, paused, failed, completed
-  currentStepOrder Int?    // Pointer to next step to execute (null if completed)
-  context         Json     // Accumulated execution context
-  pausedAt        DateTime?
-  resumeAt        DateTime? // For delayed retry (timestamp-based pause)
-  error           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String    @id @default(uuid())
+  workflowId       String
+  status           String // running, paused, failed, completed
+  currentStepOrder Int? // Pointer to next step to execute (null if completed)
+  context          Json // Accumulated execution context
+  pausedAt         DateTime?
+  resumeAt         DateTime? // For delayed retry (timestamp-based pause)
+  error            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   logs     ExecutionLog[]
 
   @@map("workflow_executions")
@@ -68,10 +81,10 @@ model WorkflowExecution {
 model NotificationConfig {
   id         String   @id @default(uuid())
   workflowId String
-  type       String   // email, webhook
-  config     Json     // Configuration: { to: string } for email, { url: string } for webhook
-  onFailure  Boolean  @default(true)  // Send notification on permanent failure
-  onPause    Boolean  @default(true)  // Send notification on pause
+  type       String // email, webhook
+  config     Json // Configuration: { to: string } for email, { url: string } for webhook
+  onFailure  Boolean  @default(true) // Send notification on permanent failure
+  onPause    Boolean  @default(true) // Send notification on pause
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -85,13 +98,13 @@ model ExecutionLog {
   executionId String
   stepId      String
   stepOrder   Int
-  eventType   String   // started, completed, failed, paused, retried
+  eventType   String // started, completed, failed, paused, retried
   timestamp   DateTime @default(now())
-  metadata    Json?    // Optional: { error?: string, retryCount?: number }
+  metadata    Json? // Optional: { error?: string, retryCount?: number }
   createdAt   DateTime @default(now())
 
   execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
 
-  @@map("execution_logs")
   @@index([executionId, timestamp])
+  @@map("execution_logs")
 }

@@ -6,6 +6,7 @@ import {
   validateUpdateWorkflowRequest,
 } from '../validators/workflows.js';
 import type { WorkflowResponse } from '../types/workflows.js';
+import type { AuthenticatedRequest } from '../utils/auth.js';
 
 const router = Router();
 
@@ -56,13 +57,14 @@ function toWorkflowResponse(workflow: {
 }
 
 // POST /workflows
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthenticatedRequest, res) => {
   const validation = validateCreateWorkflowRequest(req.body);
   if (validation.valid === false) {
     return res.status(400).json({ error: validation.error });
   }
 
   const { name, status, trigger, steps } = validation.data;
+  const userId = req.userId!; // Set by auth middleware
 
   try {
     const workflow = await prisma.$transaction(async (tx) => {
@@ -71,6 +73,7 @@ router.post('/', async (req, res) => {
         data: {
           name,
           status,
+          userId,
         },
       });
 
@@ -117,9 +120,12 @@ router.post('/', async (req, res) => {
 });
 
 // GET /workflows
-router.get('/', async (_req, res) => {
+router.get('/', async (req: AuthenticatedRequest, res) => {
+  const userId = req.userId!; // Set by auth middleware
+
   try {
     const workflows = await prisma.workflow.findMany({
+      where: { userId },
       include: {
         trigger: true,
         steps: {
@@ -136,12 +142,16 @@ router.get('/', async (_req, res) => {
 });
 
 // GET /workflows/:id
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
+router.get('/:id', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return res.status(400).json({ error: 'Workflow ID is required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
       include: {
         trigger: true,
         steps: {
@@ -162,8 +172,12 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /workflows/:id
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
+router.put('/:id', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return res.status(400).json({ error: 'Workflow ID is required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   const validation = validateUpdateWorkflowRequest(req.body);
   if (validation.valid === false) {
@@ -173,9 +187,9 @@ router.put('/:id', async (req, res) => {
   const { name, status, trigger, steps } = validation.data;
 
   try {
-    // Check if workflow exists
-    const existing = await prisma.workflow.findUnique({
-      where: { id },
+    // Check if workflow exists and belongs to user
+    const existing = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!existing) {
@@ -243,12 +257,16 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /workflows/:id
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+router.delete('/:id', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return res.status(400).json({ error: 'Workflow ID is required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {
@@ -268,13 +286,17 @@ router.delete('/:id', async (req, res) => {
 });
 
 // GET /workflows/:id/executions
-router.get('/:id/executions', async (req, res) => {
-  const { id } = req.params;
+router.get('/:id/executions', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return res.status(400).json({ error: 'Workflow ID is required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    // Verify workflow exists and belongs to user
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {
@@ -307,13 +329,18 @@ router.get('/:id/executions', async (req, res) => {
 });
 
 // GET /workflows/:id/executions/:executionId
-router.get('/:id/executions/:executionId', async (req, res) => {
-  const { id, executionId } = req.params;
+router.get('/:id/executions/:executionId', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const executionId = Array.isArray(req.params.executionId) ? req.params.executionId[0] : req.params.executionId;
+  if (!id || !executionId) {
+    return res.status(400).json({ error: 'Workflow ID and Execution ID are required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    // Verify workflow exists and belongs to user
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {
@@ -375,13 +402,18 @@ router.get('/:id/executions/:executionId', async (req, res) => {
 });
 
 // POST /workflows/:id/executions/:executionId/resume
-router.post('/:id/executions/:executionId/resume', async (req, res) => {
-  const { id, executionId } = req.params;
+router.post('/:id/executions/:executionId/resume', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const executionId = Array.isArray(req.params.executionId) ? req.params.executionId[0] : req.params.executionId;
+  if (!id || !executionId) {
+    return res.status(400).json({ error: 'Workflow ID and Execution ID are required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    // Verify workflow exists and belongs to user
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {
@@ -454,13 +486,18 @@ router.post('/:id/executions/:executionId/resume', async (req, res) => {
 });
 
 // GET /workflows/:id/executions/:executionId/logs
-router.get('/:id/executions/:executionId/logs', async (req, res) => {
-  const { id, executionId } = req.params;
+router.get('/:id/executions/:executionId/logs', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const executionId = Array.isArray(req.params.executionId) ? req.params.executionId[0] : req.params.executionId;
+  if (!id || !executionId) {
+    return res.status(400).json({ error: 'Workflow ID and Execution ID are required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    // Verify workflow exists and belongs to user
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {
@@ -506,13 +543,17 @@ router.get('/:id/executions/:executionId/logs', async (req, res) => {
 });
 
 // GET /workflows/:id/statistics
-router.get('/:id/statistics', async (req, res) => {
-  const { id } = req.params;
+router.get('/:id/statistics', async (req: AuthenticatedRequest, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return res.status(400).json({ error: 'Workflow ID is required' });
+  }
+  const userId = req.userId!; // Set by auth middleware
 
   try {
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id },
+    // Verify workflow exists and belongs to user
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId },
     });
 
     if (!workflow) {

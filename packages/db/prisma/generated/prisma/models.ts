@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/User.js'
 export type * from './models/Workflow.js'
 export type * from './models/Trigger.js'
 export type * from './models/Step.js'

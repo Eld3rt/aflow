@@ -11,7 +11,7 @@ const router = Router();
 /**
  * POST /webhooks/email
  * Generic email webhook endpoint (provider-agnostic).
- * Normalizes email payload and triggers all active workflows with email triggers.
+ * Normalizes email payload and triggers the workflow matching the recipient email address.
  */
 router.post('/email', async (req, res) => {
   try {
@@ -20,26 +20,45 @@ router.post('/email', async (req, res) => {
       req.body,
     );
 
-    // Find all active workflows with email triggers
-    const workflows = await prisma.workflow.findMany({
-      where: {
-        status: 'active',
-        trigger: {
-          type: 'email',
-        },
-      },
-      include: {
-        trigger: true,
-      },
-    });
+    // Collect all recipient addresses (to, cc, bcc) - already normalized by normalizeEmailPayload
+    const recipientAddresses: string[] = [];
+    normalizedEmail.to.forEach((addr) => recipientAddresses.push(addr));
+    if (normalizedEmail.cc) {
+      normalizedEmail.cc.forEach((addr) => recipientAddresses.push(addr));
+    }
+    if (normalizedEmail.bcc) {
+      normalizedEmail.bcc.forEach((addr) => recipientAddresses.push(addr));
+    }
 
-    // Enqueue workflow execution jobs for each matching workflow
-    // Retry configuration: minimal retries at job level since step-level retries handle transient failures
-    const enqueuePromises = workflows.map((workflow) =>
-      workflowExecutionQueue.add(
+    // Find the workflow whose trigger has an inboundEmail matching any recipient address
+    // Use Prisma JSON filtering with OR condition to match any recipient address at database level
+    const matchingWorkflow =
+      recipientAddresses.length > 0
+        ? await prisma.workflow.findFirst({
+            where: {
+              status: 'active',
+              OR: recipientAddresses.map((address) => ({
+                trigger: {
+                  type: 'email',
+                  config: {
+                    path: ['inboundEmail'],
+                    equals: address,
+                  },
+                },
+              })),
+            },
+            include: {
+              trigger: true,
+            },
+          })
+        : null;
+
+    // Enqueue workflow execution only if a matching workflow was found
+    if (matchingWorkflow) {
+      await workflowExecutionQueue.add(
         'workflow-execution',
         {
-          workflowId: workflow.id,
+          workflowId: matchingWorkflow.id,
           triggerPayload: { ...normalizedEmail },
         },
         {
@@ -51,21 +70,30 @@ router.post('/email', async (req, res) => {
             delay: 2000, // 2 seconds initial delay
           },
         },
-      ),
-    );
+      );
 
-    await Promise.all(enqueuePromises);
-
-    // Return success response immediately (workflows execute in background)
-    res.status(200).json({
-      success: true,
-      message: 'Email webhook received and workflow executions enqueued',
-      workflowsTriggered: workflows.length,
-      email: {
-        from: normalizedEmail.from,
-        subject: normalizedEmail.subject,
-      },
-    });
+      // Return success response immediately (workflow executes in background)
+      res.status(200).json({
+        success: true,
+        message: 'Email webhook received and workflow execution enqueued',
+        workflowId: matchingWorkflow.id,
+        email: {
+          from: normalizedEmail.from,
+          subject: normalizedEmail.subject,
+        },
+      });
+    } else {
+      // No matching workflow found - return 200 OK as per spec
+      res.status(200).json({
+        success: true,
+        message: 'Email webhook received, but no matching workflow found',
+        workflowsTriggered: 0,
+        email: {
+          from: normalizedEmail.from,
+          subject: normalizedEmail.subject,
+        },
+      });
+    }
   } catch (error) {
     console.error('Error processing email webhook:', error);
     const errorMessage =
@@ -85,7 +113,12 @@ router.post('/:triggerId', async (req, res) => {
   try {
     // Load trigger by ID to get associated workflow
     const trigger = await prisma.trigger.findUnique({
-      where: { id: triggerId },
+      where: {
+        id: triggerId,
+        workflow: {
+          status: 'active',
+        },
+      },
       include: {
         workflow: true,
       },

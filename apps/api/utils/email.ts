@@ -4,6 +4,9 @@
  */
 export interface NormalizedEmailPayload {
   from: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
   subject: string;
   body: string;
 }
@@ -13,7 +16,7 @@ export interface NormalizedEmailPayload {
  * Handles common variations in field names across different email providers.
  *
  * @param payload - Raw email webhook payload from any provider
- * @returns Normalized email payload with from, subject, body fields
+ * @returns Normalized email payload with from, to, cc, bcc, subject, body fields
  */
 export function normalizeEmailPayload(
   payload: unknown,
@@ -32,6 +35,45 @@ export function normalizeEmailPayload(
     (obj.fromEmail as string) ||
     (obj.From as string) ||
     '';
+
+  // Extract 'to' field (common variations: to, to_email, toEmail, To, recipient, recipients)
+  // Handle both string and array formats
+  const toRaw =
+    obj.to ||
+    obj.to_email ||
+    obj.toEmail ||
+    obj.To ||
+    obj.recipient ||
+    obj.recipients ||
+    '';
+  const to = Array.isArray(toRaw)
+    ? (toRaw as string[]).map((addr) => String(addr).trim().toLowerCase())
+    : String(toRaw)
+        .split(',')
+        .map((addr) => addr.trim().toLowerCase())
+        .filter((addr) => addr.length > 0);
+
+  // Extract 'cc' field (optional, common variations: cc, cc_email, ccEmail, Cc)
+  const ccRaw = obj.cc || obj.cc_email || obj.ccEmail || obj.Cc;
+  const cc = ccRaw
+    ? Array.isArray(ccRaw)
+      ? (ccRaw as string[]).map((addr) => String(addr).trim().toLowerCase())
+      : String(ccRaw)
+          .split(',')
+          .map((addr) => addr.trim().toLowerCase())
+          .filter((addr) => addr.length > 0)
+    : undefined;
+
+  // Extract 'bcc' field (optional, common variations: bcc, bcc_email, bccEmail, Bcc)
+  const bccRaw = obj.bcc || obj.bcc_email || obj.bccEmail || obj.Bcc;
+  const bcc = bccRaw
+    ? Array.isArray(bccRaw)
+      ? (bccRaw as string[]).map((addr) => String(addr).trim().toLowerCase())
+      : String(bccRaw)
+          .split(',')
+          .map((addr) => addr.trim().toLowerCase())
+          .filter((addr) => addr.length > 0)
+    : undefined;
 
   // Extract 'subject' field (common variations: subject, Subject, subject_line, subjectLine)
   const subject =
@@ -57,6 +99,9 @@ export function normalizeEmailPayload(
 
   return {
     from: from.trim(),
+    to,
+    ...(cc && cc.length > 0 ? { cc } : {}),
+    ...(bcc && bcc.length > 0 ? { bcc } : {}),
     subject: subject.trim(),
     body: body.trim(),
   };

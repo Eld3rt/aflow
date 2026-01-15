@@ -6,161 +6,360 @@ import type {
 
 /**
  * Transform action executor.
- * Executes user-provided JavaScript code to transform the execution context.
+ * Declarative formatter for basic data types (text, numbers, dates).
+ * Safe, rule-based transformations with no dynamic code execution.
  *
- * Constraints:
- * - No filesystem access
- * - No network access
- * - No async code (synchronous execution only)
- * - Input context is read-only
- * - Output must be serializable
+ * Supported types:
+ * - Text: toUpperCase, toLowerCase, trim, replace, substring, concat, length
+ * - Number: toNumber, round, ceil, floor, fixedDecimals, min, max
+ * - Date: parseDate, formatDate, addDays, addHours, toUnix, fromUnix
  */
 export class TransformActionExecutor implements StepExecutor {
   async execute(
     config: Record<string, unknown>,
-    context: ExecutionContext,
+    _context: ExecutionContext,
   ): Promise<StepExecutionResult> {
-    // Extract and validate required config
-    const code = config.code;
-    if (!code || typeof code !== 'string') {
+    // Validate required config fields
+    if (!config.type || typeof config.type !== 'string') {
       throw new Error(
-        'Transform action requires a valid "code" string in config.code',
+        'Transform action requires "type" field (text, number, or date)',
       );
     }
 
-    if (code.trim().length === 0) {
-      throw new Error('Transform action code cannot be empty');
+    if (!config.operation || typeof config.operation !== 'string') {
+      throw new Error(
+        'Transform action requires "operation" field (e.g., "toUpperCase", "round", "formatDate")',
+      );
     }
 
-    // Create read-only copy of context
-    // Deep freeze to prevent mutations (enforces read-only constraint)
-    const frozenContext = this.createReadOnlyContext(context);
+    const type = config.type as string;
+    const operation = config.operation as string;
+    const input = config.input;
+    const format = config.format as string | undefined;
 
+    // Route to appropriate formatter based on type
+    let result: unknown;
     try {
-      // Execute user code in controlled environment
-      // Using Function constructor to execute code with context as parameter
-      // The code can be:
-      // 1. An expression: "{ result: context.value * 2 }" (will be wrapped with return)
-      // 2. A function body: "const doubled = context.value * 2; return { result: doubled };"
-      //
-      // If code doesn't contain a return statement, wrap it to make it return the expression
-      const normalizedCode = this.normalizeCode(code);
-      const userFunction = new Function('context', normalizedCode);
-
-      // Execute synchronously (no async allowed)
-      const result = userFunction(frozenContext);
-
-      // Validate result is serializable
-      if (result === undefined || result === null) {
-        // Allow undefined/null, but return empty object to merge
-        return { output: {} };
+      switch (type) {
+        case 'text':
+          result = this.executeTextOperation(operation, input, config);
+          break;
+        case 'number':
+          result = this.executeNumberOperation(operation, input, config);
+          break;
+        case 'date':
+          result = this.executeDateOperation(operation, input, format, config);
+          break;
+        default:
+          throw new Error(
+            `Unsupported transform type: ${type}. Must be one of: text, number, date`,
+          );
       }
-
-      // Validate result is an object (required for merging into context)
-      if (typeof result !== 'object') {
-        throw new Error(
-          `Transform code must return an object, got: ${typeof result}`,
-        );
-      }
-
-      // Ensure result is serializable by attempting JSON serialization
-      // This will throw if result contains non-serializable values (functions, symbols, etc.)
-      JSON.stringify(result);
-
-      // Return result as output (will be merged into context)
-      return {
-        output: result as Record<string, unknown>,
-      };
     } catch (error) {
-      // Fail workflow safely with descriptive error
       const errorMessage =
         error instanceof Error
           ? error.message
-          : `Transform execution failed: ${String(error)}`;
+          : `Transform operation failed: ${String(error)}`;
       throw new Error(`Transform step failed: ${errorMessage}`);
     }
+
+    // Ensure result is serializable
+    try {
+      JSON.stringify(result);
+    } catch {
+      throw new Error(
+        'Transform operation returned non-serializable result. Result must be JSON-serializable.',
+      );
+    }
+
+    // Return result as output (will be merged into context)
+    // Wrap single values in an object with 'result' key for consistency
+    return {
+      output:
+        result !== null && typeof result === 'object' && !Array.isArray(result)
+          ? (result as Record<string, unknown>)
+          : { result },
+    };
   }
 
   /**
-   * Normalize user code to ensure it returns a value.
-   * If code doesn't contain a return statement, wrap it with "return".
+   * Execute text formatting operations.
    */
-  private normalizeCode(code: string): string {
-    const trimmed = code.trim();
-
-    // If code already contains a return statement, use as-is
-    if (/\breturn\b/.test(trimmed)) {
-      return trimmed;
+  private executeTextOperation(
+    operation: string,
+    input: unknown,
+    config: Record<string, unknown>,
+  ): unknown {
+    if (input === null || input === undefined) {
+      throw new Error('Text operation input cannot be null or undefined');
     }
 
-    // Otherwise, wrap with return statement
-    // Handle both single-line and multi-line expressions
-    return `return (${trimmed});`;
-  }
+    const str = String(input);
 
-  /**
-   * Create a read-only copy of the context.
-   * Uses deep freeze to prevent mutations during transformation.
-   */
-  private createReadOnlyContext(context: ExecutionContext): ExecutionContext {
-    // Deep clone to prevent mutations
-    const cloned = this.deepClone(context);
+    switch (operation) {
+      case 'toUpperCase':
+        return str.toUpperCase();
 
-    // Deep freeze to enforce read-only
-    this.deepFreeze(cloned);
+      case 'toLowerCase':
+        return str.toLowerCase();
 
-    return cloned;
-  }
+      case 'trim':
+        return str.trim();
 
-  /**
-   * Deep clone an object to prevent mutations.
-   */
-  private deepClone<T>(obj: T): T {
-    if (obj === null || typeof obj !== 'object') {
-      return obj;
-    }
-
-    if (obj instanceof Date) {
-      return new Date(obj.getTime()) as unknown as T;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => this.deepClone(item)) as unknown as T;
-    }
-
-    const cloned = {} as T;
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        cloned[key] = this.deepClone(obj[key]);
+      case 'replace': {
+        const search = config.search as string | undefined;
+        const replace = (config.replace as string | undefined) ?? '';
+        if (!search) {
+          throw new Error('Text replace operation requires "search" field');
+        }
+        return str.replace(search, replace);
       }
-    }
 
-    return cloned;
+      case 'substring': {
+        const start = config.start as number | undefined;
+        const end = config.end as number | undefined;
+        if (start === undefined) {
+          throw new Error('Text substring operation requires "start" field');
+        }
+        if (end !== undefined) {
+          return str.substring(start, end);
+        }
+        return str.substring(start);
+      }
+
+      case 'concat': {
+        const values = config.values as unknown[] | undefined;
+        if (!Array.isArray(values)) {
+          throw new Error(
+            'Text concat operation requires "values" field as an array',
+          );
+        }
+        return str + values.map((v) => String(v)).join('');
+      }
+
+      case 'length':
+        return str.length;
+
+      default:
+        throw new Error(
+          `Unsupported text operation: ${operation}. Supported: toUpperCase, toLowerCase, trim, replace, substring, concat, length`,
+        );
+    }
   }
 
   /**
-   * Deep freeze an object to make it read-only.
+   * Execute number formatting operations.
    */
-  private deepFreeze<T>(obj: T): void {
-    if (obj === null || typeof obj !== 'object') {
-      return;
-    }
+  private executeNumberOperation(
+    operation: string,
+    input: unknown,
+    config: Record<string, unknown>,
+  ): unknown {
+    switch (operation) {
+      case 'toNumber': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Number toNumber operation input cannot be null or undefined',
+          );
+        }
+        const num = Number(input);
+        if (Number.isNaN(num)) {
+          throw new Error(`Cannot convert "${input}" to number`);
+        }
+        return num;
+      }
 
-    // Freeze the object itself
-    Object.freeze(obj);
-
-    // Recursively freeze all properties
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const value = obj[key];
-        if (
-          value !== null &&
-          typeof value === 'object' &&
-          !Object.isFrozen(value)
-        ) {
-          this.deepFreeze(value);
+      case 'round':
+      case 'ceil':
+      case 'floor': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            `Number ${operation} operation input cannot be null or undefined`,
+          );
+        }
+        const num = Number(input);
+        if (Number.isNaN(num)) {
+          throw new Error(`Cannot convert "${input}" to number`);
+        }
+        switch (operation) {
+          case 'round':
+            return Math.round(num);
+          case 'ceil':
+            return Math.ceil(num);
+          case 'floor':
+            return Math.floor(num);
         }
       }
+
+      case 'fixedDecimals': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Number fixedDecimals operation input cannot be null or undefined',
+          );
+        }
+        const num = Number(input);
+        if (Number.isNaN(num)) {
+          throw new Error(`Cannot convert "${input}" to number`);
+        }
+        const decimals = (config.decimals as number | undefined) ?? 2;
+        if (typeof decimals !== 'number' || decimals < 0) {
+          throw new Error(
+            'Number fixedDecimals operation requires "decimals" as non-negative number',
+          );
+        }
+        return Number(num.toFixed(decimals));
+      }
+
+      case 'min':
+      case 'max': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            `Number ${operation} operation input cannot be null or undefined`,
+          );
+        }
+        const num = Number(input);
+        if (Number.isNaN(num)) {
+          throw new Error(`Cannot convert "${input}" to number`);
+        }
+        const limit = config.limit as number | undefined;
+        if (limit === undefined || typeof limit !== 'number') {
+          throw new Error(
+            `Number ${operation} operation requires "limit" as number`,
+          );
+        }
+        return operation === 'min'
+          ? Math.max(num, limit)
+          : Math.min(num, limit);
+      }
+
+      default:
+        throw new Error(
+          `Unsupported number operation: ${operation}. Supported: toNumber, round, ceil, floor, fixedDecimals, min, max`,
+        );
+    }
+  }
+
+  /**
+   * Execute date formatting operations.
+   */
+  private executeDateOperation(
+    operation: string,
+    input: unknown,
+    format: string | undefined,
+    config: Record<string, unknown>,
+  ): unknown {
+    switch (operation) {
+      case 'parseDate': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Date parseDate operation input cannot be null or undefined',
+          );
+        }
+        const date = new Date(String(input));
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`Cannot parse "${input}" as date`);
+        }
+        return date.toISOString();
+      }
+
+      case 'formatDate': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Date formatDate operation input cannot be null or undefined',
+          );
+        }
+        const date = new Date(String(input));
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`Cannot parse "${input}" as date`);
+        }
+        if (!format) {
+          throw new Error('Date formatDate operation requires "format" field');
+        }
+
+        // Support common formats
+        if (format === 'ISO') {
+          return date.toISOString();
+        }
+        if (format === 'RFC3339') {
+          return date.toISOString();
+        }
+
+        // Custom format support (simplified)
+        // YYYY-MM-DD, YYYY-MM-DD HH:mm:ss, etc.
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return format
+          .replace('YYYY', String(year))
+          .replace('MM', month)
+          .replace('DD', day)
+          .replace('HH', hours)
+          .replace('mm', minutes)
+          .replace('ss', seconds);
+      }
+
+      case 'addDays':
+      case 'addHours': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            `Date ${operation} operation input cannot be null or undefined`,
+          );
+        }
+        const date = new Date(String(input));
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`Cannot parse "${input}" as date`);
+        }
+        const amount = config.amount as number | undefined;
+        if (amount === undefined || typeof amount !== 'number') {
+          throw new Error(
+            `Date ${operation} operation requires "amount" as number`,
+          );
+        }
+
+        const result = new Date(date);
+        if (operation === 'addDays') {
+          result.setDate(result.getDate() + amount);
+        } else {
+          result.setHours(result.getHours() + amount);
+        }
+        return result.toISOString();
+      }
+
+      case 'toUnix': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Date toUnix operation input cannot be null or undefined',
+          );
+        }
+        const date = new Date(String(input));
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`Cannot parse "${input}" as date`);
+        }
+        return Math.floor(date.getTime() / 1000);
+      }
+
+      case 'fromUnix': {
+        if (input === null || input === undefined) {
+          throw new Error(
+            'Date fromUnix operation input cannot be null or undefined',
+          );
+        }
+        const timestamp = Number(input);
+        if (Number.isNaN(timestamp)) {
+          throw new Error(`Cannot convert "${input}" to number`);
+        }
+        const date = new Date(timestamp * 1000);
+        return date.toISOString();
+      }
+
+      default:
+        throw new Error(
+          `Unsupported date operation: ${operation}. Supported: parseDate, formatDate, addDays, addHours, toUnix, fromUnix`,
+        );
     }
   }
 }

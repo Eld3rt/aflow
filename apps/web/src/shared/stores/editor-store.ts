@@ -114,7 +114,7 @@ export const useEditorStore = create<EditorState & EditorActions>((set) => ({
 
       const newAction: EditorAction = {
         id: `action-${Date.now()}`,
-        type: 'http',
+        type: '',
         config: {},
         order: newOrder,
       };
@@ -151,11 +151,11 @@ export const useEditorStore = create<EditorState & EditorActions>((set) => ({
         (a, b) => a.order - b.order,
       );
       const [removed] = sortedActions.splice(startIndex, 1);
-      
+
       if (!removed) {
         return state; // No action to move
       }
-      
+
       sortedActions.splice(endIndex, 0, removed);
 
       // Reassign order values

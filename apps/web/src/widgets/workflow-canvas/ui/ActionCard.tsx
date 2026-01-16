@@ -58,9 +58,9 @@ export function ActionCard({ actionId, order }: ActionCardProps) {
         <div className="flex-1">
           <h3 className="text-sm font-medium text-gray-900">Action</h3>
           <p className="mt-1 text-xs text-gray-500">
-            {action.type
-              ? `${order + 1}. ${action.type} action configured`
-              : `${order + 1}. Select the event for your workflow to run`}
+            {action.type === ''
+              ? `${order + 2}. Select the event for your workflow to run`
+              : `${order + 2}. ${action.type.charAt(0).toUpperCase() + action.type.slice(1)} action configured`}
           </p>
         </div>
         <button

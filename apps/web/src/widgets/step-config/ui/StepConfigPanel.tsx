@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Calendar } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
 import { StepNavigation, type Step } from './StepNavigation';
 import { SetupStep } from './SetupStep';
 import { ScheduleConfigureStep } from './ScheduleConfigureStep';
+import { EmailConfigureStep } from './EmailConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -89,19 +90,20 @@ export function StepConfigPanel() {
     return 'Action';
   };
 
-  const getNodeIcon = () => {
-    if (selectedType === 'cron' || selectedNode?.type === 'cron') {
-      return <Calendar className="h-5 w-5 text-neutral-600" />;
-    }
-    return null;
-  };
-
   // Check if configure step is completed (has saved config)
   const isConfigureCompleted = () => {
     if (!selectedNode) return false;
     // For cron triggers, check if cronExpression exists
     if (selectedNode.type === 'cron') {
       return !!selectedNode.config.cronExpression;
+    }
+    // For email actions, check if all required fields exist
+    if (selectedNode.type === 'email') {
+      return (
+        !!selectedNode.config.to &&
+        !!selectedNode.config.subject &&
+        !!selectedNode.config.body
+      );
     }
     // For other types, check if config has meaningful data
     return Object.keys(selectedNode.config).length > 0;
@@ -152,11 +154,6 @@ export function StepConfigPanel() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-2">
-            {getNodeIcon() && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100">
-                {getNodeIcon()}
-              </div>
-            )}
             <h2 className="text-lg font-semibold text-gray-900">
               {getNodeTitle()}
             </h2>
@@ -201,14 +198,31 @@ export function StepConfigPanel() {
             />
           )}
 
-          {/* Placeholder for other trigger/action types */}
-          {currentStep === 'configure' && selectedType !== 'cron' && (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <p className="text-sm text-gray-500">
-                Configuration for {selectedType} is not yet implemented.
-              </p>
-            </div>
+          {currentStep === 'configure' && selectedType === 'email' && (
+            <EmailConfigureStep
+              initialValues={
+                selectedNode?.type === 'email'
+                  ? (selectedNode.config as Partial<{
+                      to: string;
+                      subject: string;
+                      body: string;
+                    }>)
+                  : undefined
+              }
+              onSave={handleConfigureSave}
+            />
           )}
+
+          {/* Placeholder for other trigger/action types */}
+          {currentStep === 'configure' &&
+            selectedType !== 'cron' &&
+            selectedType !== 'email' && (
+              <div className="flex flex-1 items-center justify-center p-6">
+                <p className="text-sm text-gray-500">
+                  Configuration for {selectedType} is not yet implemented.
+                </p>
+              </div>
+            )}
         </div>
       </div>
     </div>

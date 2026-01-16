@@ -186,6 +186,63 @@ export function EditorPage() {
     }
   };
 
+  const handleToggleStatus = async (enabled: boolean) => {
+    if (!workflow?.id) {
+      return;
+    }
+
+    // Determine new status
+    const newStatus = enabled ? 'active' : 'published';
+
+    try {
+      const token = await getToken();
+      const result = await updateWorkflow(
+        workflow.id,
+        {
+          name: workflow.name,
+          status: newStatus,
+          trigger: trigger
+            ? {
+                type: trigger.type,
+                config: trigger.config,
+              }
+            : undefined,
+          steps: actions.map((action) => ({
+            type: action.type,
+            config: action.config,
+            order: action.order,
+          })),
+        },
+        token,
+      );
+
+      // Update with server response
+      loadWorkflow(result);
+      toast.success(
+        enabled
+          ? 'Workflow enabled successfully'
+          : 'Workflow disabled successfully',
+      );
+    } catch (err) {
+      // Reload from server to ensure state is correct
+      if (workflow.id) {
+        try {
+          const token = await getToken();
+          const current = await fetchWorkflow(workflow.id, token);
+          loadWorkflow(current);
+        } catch (reloadErr) {
+          console.error('Failed to reload workflow after error:', reloadErr);
+        }
+      }
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : `Failed to ${enabled ? 'enable' : 'disable'} workflow`;
+      toast.error(errorMessage);
+      console.error('Error updating workflow status:', err);
+    }
+  };
+
   const isPublishDisabled =
     !isInitialized ||
     isLoading ||
@@ -207,6 +264,7 @@ export function EditorPage() {
         onPublish={handlePublish}
         onRename={handleRename}
         onDelete={handleDelete}
+        onToggleStatus={handleToggleStatus}
         isPublishDisabled={isPublishDisabled}
       />
       <div className="relative flex flex-1 overflow-hidden">

@@ -12,6 +12,7 @@ interface TopNavBarProps {
   onPublish: () => void;
   onRename: (newName: string) => void;
   onDelete: () => void;
+  onToggleStatus: (enabled: boolean) => void;
   isPublishDisabled: boolean;
 }
 
@@ -19,15 +20,33 @@ export function TopNavBar({
   onPublish,
   onRename,
   onDelete,
+  onToggleStatus,
   isPublishDisabled,
 }: TopNavBarProps) {
   const router = useRouter();
-  const workflowName = useEditorStore(
-    (state) => state.workflow?.name || 'Untitled Workflow',
-  );
+  const workflow = useEditorStore((state) => state.workflow);
+  const workflowName = workflow?.name || 'Untitled Workflow';
+  const workflowStatus = workflow?.status || 'draft';
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newName, setNewName] = useState(workflowName);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Determine if workflow is published (can be toggled)
+  const isPublished =
+    workflowStatus === 'published' || workflowStatus === 'active';
+  const isEnabled = workflowStatus === 'active';
+
+  const handleToggle = async () => {
+    if (!isPublished || isToggling) return;
+
+    setIsToggling(true);
+    try {
+      await onToggleStatus(!isEnabled);
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const handleRename = () => {
     if (newName.trim()) {
@@ -52,36 +71,83 @@ export function TopNavBar({
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button className="flex items-center gap-2 rounded-md px-3 py-1.5 text-lg font-medium text-gray-900 hover:bg-gray-100">
-              <span>{workflowName}</span>
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content
-              className="min-w-[180px] rounded-md border border-gray-200 bg-white p-1 shadow-lg"
-              sideOffset={5}
+        <div className="flex items-center gap-3">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="flex items-center gap-2 rounded-md px-3 py-1.5 text-lg font-medium text-gray-900 hover:bg-gray-100">
+                <span>{workflowName}</span>
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="min-w-[180px] rounded-md border border-gray-200 bg-white p-1 shadow-lg"
+                sideOffset={5}
+              >
+                <DropdownMenu.Item
+                  className="cursor-pointer rounded-sm px-3 py-2 text-sm text-gray-700 outline-none hover:bg-gray-100"
+                  onSelect={() => {
+                    setNewName(workflowName);
+                    setIsRenameDialogOpen(true);
+                  }}
+                >
+                  Rename workflow
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="cursor-pointer rounded-sm px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50"
+                  onSelect={() => setIsDeleteDialogOpen(true)}
+                >
+                  Delete workflow
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+
+          {/* Enable/Disable Toggle */}
+          <div className="flex items-center gap-2">
+            <label
+              className={cn(
+                'flex items-center gap-2 text-sm text-gray-700',
+                !isPublished && 'text-gray-400',
+              )}
             >
-              <DropdownMenu.Item
-                className="cursor-pointer rounded-sm px-3 py-2 text-sm text-gray-700 outline-none hover:bg-gray-100"
-                onSelect={() => {
-                  setNewName(workflowName);
-                  setIsRenameDialogOpen(true);
-                }}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isEnabled}
+                aria-disabled={!isPublished || isToggling}
+                onClick={handleToggle}
+                disabled={!isPublished || isToggling}
+                className={cn(
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2',
+                  isEnabled ? 'bg-green-600' : 'bg-gray-300',
+                  !isPublished && 'cursor-not-allowed opacity-50',
+                  isToggling && 'cursor-wait opacity-75',
+                )}
+                title={
+                  !isPublished
+                    ? 'Publish workflow to enable it'
+                    : isEnabled
+                      ? 'Disable workflow'
+                      : 'Enable workflow'
+                }
               >
-                Rename workflow
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                className="cursor-pointer rounded-sm px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50"
-                onSelect={() => setIsDeleteDialogOpen(true)}
-              >
-                Delete workflow
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    isEnabled ? 'translate-x-6' : 'translate-x-1',
+                  )}
+                >
+                  {isToggling && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="h-2 w-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+                    </span>
+                  )}
+                </span>
+              </button>
+            </label>
+          </div>
+        </div>
       </div>
 
       <button

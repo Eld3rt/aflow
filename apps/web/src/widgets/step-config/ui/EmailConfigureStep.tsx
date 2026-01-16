@@ -26,8 +26,7 @@ const emailSchema = z
           return emails.every((email) => emailRegex.test(email));
         },
         {
-          message:
-            'Must be 1-5 valid email addresses separated by commas',
+          message: 'Must be 1-5 valid email addresses separated by commas',
         },
       ),
     subject: z
@@ -119,8 +118,8 @@ export function EmailConfigureStep({
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
             />
             <p className="mt-1 text-xs text-gray-500">
-              You can enter multiple email addresses separated by commas. Limited
-              to 5.
+              You can enter multiple email addresses separated by commas.
+              Limited to 5.
             </p>
             {errors.to && (
               <p className="mt-1 text-xs text-red-600">{errors.to.message}</p>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
 import { StepNavigation, type Step } from './StepNavigation';
 import { SetupStep } from './SetupStep';
@@ -58,21 +59,29 @@ export function StepConfigPanel() {
   const handleConfigureSave = (config: Record<string, unknown>) => {
     if (!selectedNodeId || !selectedNodeType) return;
 
-    const finalConfig = {
-      ...config,
-    };
+    try {
+      const finalConfig = {
+        ...config,
+      };
 
-    if (selectedNodeType === 'trigger') {
-      setTrigger({
-        id: trigger?.id || `trigger-${Date.now()}`,
-        type: selectedType,
-        config: finalConfig,
-      });
-    } else if (selectedNodeType === 'action') {
-      updateAction(selectedNodeId, {
-        type: selectedType,
-        config: finalConfig,
-      });
+      if (selectedNodeType === 'trigger') {
+        setTrigger({
+          id: trigger?.id || `trigger-${Date.now()}`,
+          type: selectedType,
+          config: finalConfig,
+        });
+        toast.success('Trigger configuration saved successfully');
+      } else if (selectedNodeType === 'action') {
+        updateAction(selectedNodeId, {
+          type: selectedType,
+          config: finalConfig,
+        });
+        toast.success('Action configuration saved successfully');
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save configuration';
+      toast.error(errorMessage);
     }
 
     // Don't close panel - let user see the saved state

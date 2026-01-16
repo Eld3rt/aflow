@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
+import toast from 'react-hot-toast';
 import { TopNavBar } from '@aflow/web/widgets/editor-top-nav';
 import { WorkflowCanvas } from '@aflow/web/widgets/workflow-canvas';
 import { ConfigPanel } from '@aflow/web/widgets/config-panel';
@@ -80,12 +81,16 @@ export function EditorPage() {
 
     // Validate workflow
     if (!trigger) {
-      setError('Workflow must have a trigger');
+      const errorMessage = 'Workflow must have a trigger';
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
     if (actions.length === 0) {
-      setError('Workflow must have at least one action');
+      const errorMessage = 'Workflow must have at least one action';
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
@@ -111,18 +116,21 @@ export function EditorPage() {
       let result: WorkflowResponse;
       if (workflow.id) {
         result = await updateWorkflow(workflow.id, workflowData, token);
+        toast.success('Workflow published successfully');
       } else {
         result = await createWorkflow(workflowData, token);
         // Update URL with new workflow ID
         router.replace(`/app/editor?id=${result.id}`);
+        toast.success('Workflow created and published successfully');
       }
 
       loadWorkflow(result);
       // Success - workflow state is updated, UI will reflect the change
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to publish workflow',
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to publish workflow';
+      setError(errorMessage);
+      toast.error(errorMessage);
       console.error('Error publishing workflow:', err);
     } finally {
       setLoading(false);

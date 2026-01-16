@@ -45,10 +45,10 @@ export function ActionCard({ actionId, order }: ActionCardProps) {
     <div
       onClick={handleClick}
       className={cn(
-        'relative w-80 cursor-pointer rounded-lg border bg-white p-4 shadow-sm transition-all',
+        'relative w-80 cursor-pointer rounded-lg border bg-white p-4 shadow-xl transition-all',
         isSelected
           ? 'border-black ring-2 ring-neutral-200'
-          : 'border-gray-200 hover:border-gray-300 hover:shadow-md',
+          : 'border-gray-200 hover:border-gray-300 hover:shadow-xl/20',
       )}
     >
       <div className="flex items-start gap-3">

@@ -17,6 +17,7 @@ import {
   DatabaseActionExecutor,
   NotificationService,
 } from '@aflow/integrations';
+import { syncSchedulerJobs } from '@aflow/queue';
 
 console.log('[worker] started');
 
@@ -40,6 +41,27 @@ const worker = new Worker<WorkflowExecutionJobData>(
     try {
       console.log(`[worker] Job started: ${job.id}`);
       console.log(`[worker] workflowId: ${job.data.workflowId}`);
+
+      // Optional safety check: Verify workflow is still enabled before execution
+      // This handles edge cases where workflow was disabled after job was scheduled
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: job.data.workflowId },
+        select: { status: true },
+      });
+
+      if (!workflow) {
+        throw new Error(`Workflow not found: ${job.data.workflowId}`);
+      }
+
+      if (workflow.status !== 'active') {
+        console.log(
+          `[worker] Skipping execution for workflow ${job.data.workflowId} - status is ${workflow.status}`,
+        );
+        return {
+          skipped: true,
+          reason: `Workflow is ${workflow.status}`,
+        };
+      }
 
       // If executionId is provided, check execution status
       if (job.data.executionId) {
@@ -232,3 +254,13 @@ worker.on('failed', (job, error) => {
 });
 
 console.log('[worker] Connected to workflow-execution queue');
+
+// Sync scheduler jobs on worker startup
+syncSchedulerJobs()
+  .then(() => {
+    console.log('[worker] Scheduler jobs synced on startup');
+  })
+  .catch((error: unknown) => {
+    console.error('[worker] Error syncing scheduler jobs on startup:', error);
+    // Don't exit - worker can still process jobs even if scheduler sync fails
+  });

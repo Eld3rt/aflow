@@ -50,9 +50,6 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
-      node-cron:
-        specifier: ^3.0.3
-        version: 3.0.3
     devDependencies:
       '@types/cors':
         specifier: ^2.8.19
@@ -63,9 +60,6 @@ importers:
       '@types/node':
         specifier: ^25.0.7
         version: 25.0.7
-      '@types/node-cron':
-        specifier: ^3.0.11
-        version: 3.0.11
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -250,6 +244,9 @@ importers:
 
   packages/queue:
     dependencies:
+      '@aflow/db':
+        specifier: workspace:*
+        version: link:../db
       bullmq:
         specifier: ^5.66.5
         version: 5.66.5
@@ -1741,9 +1738,6 @@ packages:
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
 
-  '@types/node-cron@3.0.11':
-    resolution: {integrity: sha512-0ikrnug3/IyneSHqCBeslAhlK2aBfYek1fGo4bP4QnZPmiqSGRK+Oy7ZMisLWkesffJvQ1cqAcBnJC+8+nxIAg==}
-
   '@types/node@20.19.28':
     resolution: {integrity: sha512-VyKBr25BuFDzBFCK5sUM6ZXiWfqgCTwTAOK8qzGV/m9FCirXYDlmczJ+d5dXBAQALGCdRRdbteKYfJ84NGEusw==}
 
@@ -3187,10 +3181,6 @@ packages:
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
 
-  node-cron@3.0.3:
-    resolution: {integrity: sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==}
-    engines: {node: '>=6.0.0'}
-
   node-fetch-native@1.6.7:
     resolution: {integrity: sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q==}
 
@@ -3919,10 +3909,6 @@ packages:
 
   uuid@11.1.0:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
-    hasBin: true
-
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -5754,8 +5740,6 @@ snapshots:
 
   '@types/json5@0.0.29': {}
 
-  '@types/node-cron@3.0.11': {}
-
   '@types/node@20.19.28':
     dependencies:
       undici-types: 6.21.0
@@ -7432,10 +7416,6 @@ snapshots:
 
   node-abort-controller@3.1.1: {}
 
-  node-cron@3.0.3:
-    dependencies:
-      uuid: 8.3.2
-
   node-fetch-native@1.6.7: {}
 
   node-gyp-build-optional-packages@5.2.2:
@@ -8259,8 +8239,6 @@ snapshots:
       react: 19.2.3
 
   uuid@11.1.0: {}
-
-  uuid@8.3.2: {}
 
   v8-compile-cache-lib@3.0.1: {}
 

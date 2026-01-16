@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { workflowsRouter } from './routes/workflows.js';
 import { webhooksRouter } from './routes/webhooks.js';
-import { initializeCronSchedules } from './scheduler.js';
+import { syncSchedulerJobs } from '@aflow/queue';
 import { requireAuth, type AuthenticatedRequest } from './utils/auth.js';
 
 dotenv.config();
@@ -40,9 +40,17 @@ app.use('/webhooks', webhooksRouter);
 
 const PORT = process.env.PORT || 3001;
 
-// Initialize cron schedules on startup
-initializeCronSchedules().then(() => {
-  app.listen(PORT, () => {
-    console.log(`[api] listening on port ${PORT}`);
+// Sync scheduler jobs on startup (for consistency, though worker also syncs)
+syncSchedulerJobs()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`[api] listening on port ${PORT}`);
+    });
+  })
+  .catch((error: unknown) => {
+    console.error('[api] Error syncing scheduler jobs on startup:', error);
+    // Still start the server even if scheduler sync fails
+    app.listen(PORT, () => {
+      console.log(`[api] listening on port ${PORT}`);
+    });
   });
-});

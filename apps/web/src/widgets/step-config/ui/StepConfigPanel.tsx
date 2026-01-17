@@ -11,6 +11,8 @@ import { EmailConfigureStep } from './EmailConfigureStep';
 import { FormatterSetupStep } from './FormatterSetupStep';
 import { FormatterConfigureStep } from './FormatterConfigureStep';
 import { HttpConfigureStep } from './HttpConfigureStep';
+import { DatabaseSetupStep } from './DatabaseSetupStep';
+import { DatabaseConfigureStep } from './DatabaseConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -27,6 +29,7 @@ export function StepConfigPanel() {
   const [selectedType, setSelectedType] = useState<string>('');
   const [formatterType, setFormatterType] = useState<string>('');
   const [transformType, setTransformType] = useState<string>('');
+  const [databaseType, setDatabaseType] = useState<string>('');
 
   const selectedNode =
     selectedNodeType === 'trigger'
@@ -43,6 +46,11 @@ export function StepConfigPanel() {
         setFormatterType((config.type as string) || '');
         setTransformType((config.operation as string) || '');
       }
+      // Extract database type from config for database actions
+      if (selectedNode.type === 'database') {
+        const config = selectedNode.config as Record<string, unknown>;
+        setDatabaseType((config.databaseType as string) || '');
+      }
       // Extract subtype from config if it exists (for schedule triggers)
       if (selectedNode.type === 'cron' && selectedNode.config.subtype) {
       }
@@ -57,6 +65,7 @@ export function StepConfigPanel() {
       setSelectedType('');
       setFormatterType('');
       setTransformType('');
+      setDatabaseType('');
       setCurrentStep('setup');
     }
   }, [selectedNode]);
@@ -68,12 +77,21 @@ export function StepConfigPanel() {
       setFormatterType('');
       setTransformType('');
     }
+    // Reset database state when changing action type
+    if (type !== 'database') {
+      setDatabaseType('');
+    }
   };
 
   const handleSetupContinue = () => {
     // For transform actions, we need formatter type and transform type before continuing
     if (selectedType === 'transform') {
       if (formatterType && transformType) {
+        setCurrentStep('configure');
+      }
+    } else if (selectedType === 'database') {
+      // For database actions, we need database type before continuing
+      if (databaseType) {
         setCurrentStep('configure');
       }
     } else {
@@ -147,6 +165,16 @@ export function StepConfigPanel() {
     if (selectedNode.type === 'transform') {
       const config = selectedNode.config as Record<string, unknown>;
       return !!config.type && !!config.operation;
+    }
+    // For database actions, check if databaseType, connection, table, and operation exist
+    if (selectedNode.type === 'database') {
+      const config = selectedNode.config as Record<string, unknown>;
+      return (
+        !!config.databaseType &&
+        !!config.connection &&
+        !!config.table &&
+        !!config.operation
+      );
     }
     // For other types, check if config has meaningful data
     return Object.keys(selectedNode.config).length > 0;
@@ -222,7 +250,9 @@ export function StepConfigPanel() {
                 selectedType={selectedType}
                 onTypeChange={handleTypeChange}
                 onContinue={handleSetupContinue}
-                hideContinueButton={selectedType === 'transform'}
+                hideContinueButton={
+                  selectedType === 'transform' || selectedType === 'database'
+                }
               />
               {selectedType === 'transform' && (
                 <FormatterSetupStep
@@ -230,6 +260,13 @@ export function StepConfigPanel() {
                   transformType={transformType}
                   onFormatterTypeChange={setFormatterType}
                   onTransformTypeChange={setTransformType}
+                  onContinue={handleSetupContinue}
+                />
+              )}
+              {selectedType === 'database' && (
+                <DatabaseSetupStep
+                  databaseType={databaseType}
+                  onDatabaseTypeChange={setDatabaseType}
                   onContinue={handleSetupContinue}
                 />
               )}
@@ -292,12 +329,25 @@ export function StepConfigPanel() {
             />
           )}
 
+          {currentStep === 'configure' && selectedType === 'database' && (
+            <DatabaseConfigureStep
+              databaseType={databaseType as 'postgres' | 'mysql'}
+              initialValues={
+                selectedNode?.type === 'database'
+                  ? (selectedNode.config as Record<string, unknown>)
+                  : undefined
+              }
+              onSave={handleConfigureSave}
+            />
+          )}
+
           {/* Placeholder for other trigger/action types */}
           {currentStep === 'configure' &&
             selectedType !== 'cron' &&
             selectedType !== 'email' &&
             selectedType !== 'http' &&
-            selectedType !== 'transform' && (
+            selectedType !== 'transform' &&
+            selectedType !== 'database' && (
               <div className="flex flex-1 items-center justify-center p-6">
                 <p className="text-sm text-gray-500">
                   Configuration for {selectedType} is not yet implemented.

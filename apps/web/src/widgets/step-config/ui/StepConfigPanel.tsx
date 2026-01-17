@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@clerk/nextjs';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
 import { StepNavigation, type Step } from './StepNavigation';
 import { SetupStep } from './SetupStep';
@@ -14,10 +15,89 @@ import { HttpConfigureStep } from './HttpConfigureStep';
 import { DatabaseSetupStep } from './DatabaseSetupStep';
 import { DatabaseConfigureStep } from './DatabaseConfigureStep';
 import { TelegramConfigureStep } from './TelegramConfigureStep';
+import { EmailTriggerConfigureStep } from './EmailTriggerConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
+// Email generation utility
+const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_INBOUND_EMAIL_DOMAIN || 'inbound.aflow.app';
+const EMAIL_PREFIX = 'notify';
+
+function generateBase36(length: number): string {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
+}
+
+function generateEmailAddress(): string {
+  const randomPart = generateBase36(Math.random() < 0.5 ? 3 : 4);
+  return `${EMAIL_PREFIX}-${randomPart}@${EMAIL_DOMAIN}`;
+}
+
+async function checkEmailUniqueness(
+  email: string,
+  token: string | null,
+): Promise<boolean> {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/workflows`, {
+      headers,
+    });
+
+    if (!response.ok) {
+      // If we can't check, assume it's unique (backend will validate on save)
+      return true;
+    }
+
+    const workflows = (await response.json()) as Array<{
+      trigger: {
+        type: string;
+        config: Record<string, unknown>;
+      } | null;
+    }>;
+
+    // Check if any workflow has an email trigger with this inboundEmail
+    return !workflows.some(
+      (workflow) =>
+        workflow.trigger?.type === 'email' &&
+        (workflow.trigger.config as Record<string, unknown>)?.inboundEmail ===
+          email,
+    );
+  } catch (error) {
+    console.error('Error checking email uniqueness:', error);
+    // If check fails, assume it's unique (backend will validate on save)
+    return true;
+  }
+}
+
+async function generateUniqueEmail(
+  token: string | null,
+  maxAttempts = 10,
+): Promise<string> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const email = generateEmailAddress();
+    const isUnique = await checkEmailUniqueness(email, token);
+    if (isUnique) {
+      return email;
+    }
+  }
+  // If we can't generate a unique email after max attempts, return a generated one anyway
+  // Backend will handle validation on save
+  return generateEmailAddress();
+}
+
 export function StepConfigPanel() {
+  const { getToken } = useAuth();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeType = useEditorStore((state) => state.selectedNodeType);
   const trigger = useEditorStore((state) => state.trigger);
@@ -31,6 +111,8 @@ export function StepConfigPanel() {
   const [formatterType, setFormatterType] = useState<string>('');
   const [transformType, setTransformType] = useState<string>('');
   const [databaseType, setDatabaseType] = useState<string>('');
+  const [inboundEmail, setInboundEmail] = useState<string>('');
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
 
   const selectedNode =
     selectedNodeType === 'trigger'
@@ -52,6 +134,11 @@ export function StepConfigPanel() {
         const config = selectedNode.config as Record<string, unknown>;
         setDatabaseType((config.databaseType as string) || '');
       }
+      // Extract inbound email from config for email triggers
+      if (selectedNode.type === 'email') {
+        const config = selectedNode.config as Record<string, unknown>;
+        setInboundEmail((config.inboundEmail as string) || '');
+      }
       // Extract subtype from config if it exists (for schedule triggers)
       if (selectedNode.type === 'cron' && selectedNode.config.subtype) {
       }
@@ -67,6 +154,7 @@ export function StepConfigPanel() {
       setFormatterType('');
       setTransformType('');
       setDatabaseType('');
+      setInboundEmail('');
       setCurrentStep('setup');
     }
   }, [selectedNode]);
@@ -82,9 +170,13 @@ export function StepConfigPanel() {
     if (type !== 'database') {
       setDatabaseType('');
     }
+    // Reset email state when changing trigger type
+    if (type !== 'email') {
+      setInboundEmail('');
+    }
   };
 
-  const handleSetupContinue = () => {
+  const handleSetupContinue = async () => {
     // For transform actions, we need formatter type and transform type before continuing
     if (selectedType === 'transform') {
       if (formatterType && transformType) {
@@ -93,6 +185,24 @@ export function StepConfigPanel() {
     } else if (selectedType === 'database') {
       // For database actions, we need database type before continuing
       if (databaseType) {
+        setCurrentStep('configure');
+      }
+    } else if (selectedType === 'email' && selectedNodeType === 'trigger') {
+      // For email triggers, generate unique email before continuing
+      if (!inboundEmail || isGeneratingEmail) {
+        setIsGeneratingEmail(true);
+        try {
+          const token = await getToken();
+          const email = await generateUniqueEmail(token);
+          setInboundEmail(email);
+          setCurrentStep('configure');
+        } catch (error) {
+          console.error('Error generating email:', error);
+          toast.error('Failed to generate email address. Please try again.');
+        } finally {
+          setIsGeneratingEmail(false);
+        }
+      } else {
         setCurrentStep('configure');
       }
     } else {
@@ -150,8 +260,12 @@ export function StepConfigPanel() {
     if (selectedNode.type === 'cron') {
       return !!selectedNode.config.cronExpression;
     }
+    // For email triggers, check if inboundEmail exists
+    if (selectedNode.type === 'email' && selectedNodeType === 'trigger') {
+      return !!selectedNode.config.inboundEmail;
+    }
     // For email actions, check if all required fields exist
-    if (selectedNode.type === 'email') {
+    if (selectedNode.type === 'email' && selectedNodeType === 'action') {
       return (
         !!selectedNode.config.to &&
         !!selectedNode.config.subject &&
@@ -260,7 +374,9 @@ export function StepConfigPanel() {
                 onTypeChange={handleTypeChange}
                 onContinue={handleSetupContinue}
                 hideContinueButton={
-                  selectedType === 'transform' || selectedType === 'database'
+                  selectedType === 'transform' ||
+                  selectedType === 'database' ||
+                  (selectedType === 'email' && selectedNodeType === 'trigger')
                 }
               />
               {selectedType === 'transform' && (
@@ -279,6 +395,26 @@ export function StepConfigPanel() {
                   onContinue={handleSetupContinue}
                 />
               )}
+              {selectedType === 'email' &&
+                selectedNodeType === 'trigger' &&
+                (isGeneratingEmail ? (
+                  <div className="border-t border-gray-200 p-6">
+                    <p className="text-sm text-gray-600">
+                      Generating unique email address...
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 p-6">
+                    <button
+                      type="button"
+                      onClick={handleSetupContinue}
+                      disabled={!selectedType || isGeneratingEmail}
+                      className="w-full rounded-md px-4 py-2 text-sm font-medium text-white transition-colors bg-neutral-600 hover:bg-neutral-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                ))}
             </div>
           )}
 
@@ -312,20 +448,31 @@ export function StepConfigPanel() {
             />
           )}
 
-          {currentStep === 'configure' && selectedType === 'email' && (
-            <EmailConfigureStep
-              initialValues={
-                selectedNode?.type === 'email'
-                  ? (selectedNode.config as Partial<{
-                      to: string;
-                      subject: string;
-                      body: string;
-                    }>)
-                  : undefined
-              }
-              onSave={handleConfigureSave}
-            />
-          )}
+          {currentStep === 'configure' &&
+            selectedType === 'email' &&
+            selectedNodeType === 'trigger' && (
+              <EmailTriggerConfigureStep
+                inboundEmail={inboundEmail}
+                onSave={handleConfigureSave}
+              />
+            )}
+
+          {currentStep === 'configure' &&
+            selectedType === 'email' &&
+            selectedNodeType === 'action' && (
+              <EmailConfigureStep
+                initialValues={
+                  selectedNode?.type === 'email'
+                    ? (selectedNode.config as Partial<{
+                        to: string;
+                        subject: string;
+                        body: string;
+                      }>)
+                    : undefined
+                }
+                onSave={handleConfigureSave}
+              />
+            )}
 
           {currentStep === 'configure' && selectedType === 'http' && (
             <HttpConfigureStep

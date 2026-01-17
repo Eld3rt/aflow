@@ -14,7 +14,7 @@ interface SetupStepProps {
 const TRIGGER_TYPES = [
   { value: 'webhook', label: 'Webhook' },
   { value: 'cron', label: 'Schedule' },
-  { value: 'manual', label: 'Manual' },
+  { value: 'email', label: 'Email' },
 ];
 
 const ACTION_TYPES = [

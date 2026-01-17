@@ -8,6 +8,7 @@ interface SetupStepProps {
   onTypeChange: (type: string) => void;
   onSubtypeChange?: (subtype: string) => void;
   onContinue: () => void;
+  hideContinueButton?: boolean;
 }
 
 const TRIGGER_TYPES = [
@@ -21,6 +22,7 @@ const ACTION_TYPES = [
   { value: 'email', label: 'Send Email' },
   { value: 'database', label: 'Database Action' },
   { value: 'telegram', label: 'Telegram Message' },
+  { value: 'transform', label: 'Data Formatter' },
 ];
 
 export function SetupStep({
@@ -28,6 +30,7 @@ export function SetupStep({
   selectedType,
   onTypeChange,
   onContinue,
+  hideContinueButton = false,
 }: SetupStepProps) {
   const types = nodeType === 'trigger' ? TRIGGER_TYPES : ACTION_TYPES;
 
@@ -56,21 +59,23 @@ export function SetupStep({
       </div>
 
       {/* Continue Button */}
-      <div className="mt-auto mb-6 border-t border-gray-200 pt-6 px-6">
-        <button
-          type="button"
-          onClick={onContinue}
-          disabled={!selectedType}
-          className={cn(
-            'w-full rounded-md px-4 py-2 text-sm font-medium text-white transition-colors',
-            selectedType
-              ? 'bg-neutral-600 hover:bg-neutral-700'
-              : 'bg-gray-300 cursor-not-allowed',
-          )}
-        >
-          Continue
-        </button>
-      </div>
+      {!hideContinueButton && (
+        <div className="mt-auto mb-6 border-t border-gray-200 pt-6 px-6">
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!selectedType}
+            className={cn(
+              'w-full rounded-md px-4 py-2 text-sm font-medium text-white transition-colors',
+              selectedType
+                ? 'bg-neutral-600 hover:bg-neutral-700'
+                : 'bg-gray-300 cursor-not-allowed',
+            )}
+          >
+            Continue
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { StepNavigation, type Step } from './StepNavigation';
 import { SetupStep } from './SetupStep';
 import { ScheduleConfigureStep } from './ScheduleConfigureStep';
 import { EmailConfigureStep } from './EmailConfigureStep';
+import { FormatterSetupStep } from './FormatterSetupStep';
+import { FormatterConfigureStep } from './FormatterConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -22,6 +24,8 @@ export function StepConfigPanel() {
 
   const [currentStep, setCurrentStep] = useState<ConfigStep>('setup');
   const [selectedType, setSelectedType] = useState<string>('');
+  const [formatterType, setFormatterType] = useState<string>('');
+  const [transformType, setTransformType] = useState<string>('');
 
   const selectedNode =
     selectedNodeType === 'trigger'
@@ -32,6 +36,12 @@ export function StepConfigPanel() {
   useEffect(() => {
     if (selectedNode) {
       setSelectedType(selectedNode.type);
+      // Extract formatter type and transform type from config for transform actions
+      if (selectedNode.type === 'transform') {
+        const config = selectedNode.config as Record<string, unknown>;
+        setFormatterType((config.type as string) || '');
+        setTransformType((config.operation as string) || '');
+      }
       // Extract subtype from config if it exists (for schedule triggers)
       if (selectedNode.type === 'cron' && selectedNode.config.subtype) {
       }
@@ -44,16 +54,30 @@ export function StepConfigPanel() {
     } else {
       // New node - reset to setup
       setSelectedType('');
+      setFormatterType('');
+      setTransformType('');
       setCurrentStep('setup');
     }
   }, [selectedNode]);
 
   const handleTypeChange = (type: string) => {
     setSelectedType(type);
+    // Reset formatter state when changing action type
+    if (type !== 'transform') {
+      setFormatterType('');
+      setTransformType('');
+    }
   };
 
   const handleSetupContinue = () => {
-    setCurrentStep('configure');
+    // For transform actions, we need formatter type and transform type before continuing
+    if (selectedType === 'transform') {
+      if (formatterType && transformType) {
+        setCurrentStep('configure');
+      }
+    } else {
+      setCurrentStep('configure');
+    }
   };
 
   const handleConfigureSave = (config: Record<string, unknown>) => {
@@ -113,6 +137,11 @@ export function StepConfigPanel() {
         !!selectedNode.config.subject &&
         !!selectedNode.config.body
       );
+    }
+    // For transform actions, check if type and operation exist
+    if (selectedNode.type === 'transform') {
+      const config = selectedNode.config as Record<string, unknown>;
+      return !!config.type && !!config.operation;
     }
     // For other types, check if config has meaningful data
     return Object.keys(selectedNode.config).length > 0;
@@ -182,11 +211,36 @@ export function StepConfigPanel() {
         {/* Step Content */}
         <div className="flex-1 flex-col overflow-hidden">
           {currentStep === 'setup' && (
-            <SetupStep
-              nodeType={selectedNodeType}
-              selectedType={selectedType}
-              onTypeChange={handleTypeChange}
-              onContinue={handleSetupContinue}
+            <div className="flex flex-1 flex-col h-full">
+              <SetupStep
+                nodeType={selectedNodeType}
+                selectedType={selectedType}
+                onTypeChange={handleTypeChange}
+                onContinue={handleSetupContinue}
+                hideContinueButton={selectedType === 'transform'}
+              />
+              {selectedType === 'transform' && (
+                <FormatterSetupStep
+                  formatterType={formatterType}
+                  transformType={transformType}
+                  onFormatterTypeChange={setFormatterType}
+                  onTransformTypeChange={setTransformType}
+                  onContinue={handleSetupContinue}
+                />
+              )}
+            </div>
+          )}
+
+          {currentStep === 'configure' && selectedType === 'transform' && (
+            <FormatterConfigureStep
+              formatterType={formatterType as 'date' | 'number' | 'text'}
+              transformType={transformType}
+              initialValues={
+                selectedNode?.type === 'transform'
+                  ? (selectedNode.config as Record<string, unknown>)
+                  : undefined
+              }
+              onSave={handleConfigureSave}
             />
           )}
 
@@ -225,7 +279,8 @@ export function StepConfigPanel() {
           {/* Placeholder for other trigger/action types */}
           {currentStep === 'configure' &&
             selectedType !== 'cron' &&
-            selectedType !== 'email' && (
+            selectedType !== 'email' &&
+            selectedType !== 'transform' && (
               <div className="flex flex-1 items-center justify-center p-6">
                 <p className="text-sm text-gray-500">
                   Configuration for {selectedType} is not yet implemented.

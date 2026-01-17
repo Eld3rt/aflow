@@ -10,6 +10,7 @@ import { ScheduleConfigureStep } from './ScheduleConfigureStep';
 import { EmailConfigureStep } from './EmailConfigureStep';
 import { FormatterSetupStep } from './FormatterSetupStep';
 import { FormatterConfigureStep } from './FormatterConfigureStep';
+import { HttpConfigureStep } from './HttpConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -138,6 +139,10 @@ export function StepConfigPanel() {
         !!selectedNode.config.body
       );
     }
+    // For HTTP actions, check if URL exists (required field)
+    if (selectedNode.type === 'http') {
+      return !!selectedNode.config.url;
+    }
     // For transform actions, check if type and operation exist
     if (selectedNode.type === 'transform') {
       const config = selectedNode.config as Record<string, unknown>;
@@ -187,7 +192,7 @@ export function StepConfigPanel() {
   }
 
   return (
-    <div className="fixed right-0 top-0 h-full w-96 border-l border-gray-200 bg-white shadow-xl">
+    <div className="fixed right-0 top-0 h-full w-120 border-l border-gray-200 bg-white shadow-xl">
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
@@ -276,10 +281,22 @@ export function StepConfigPanel() {
             />
           )}
 
+          {currentStep === 'configure' && selectedType === 'http' && (
+            <HttpConfigureStep
+              initialValues={
+                selectedNode?.type === 'http'
+                  ? (selectedNode.config as Record<string, unknown>)
+                  : undefined
+              }
+              onSave={handleConfigureSave}
+            />
+          )}
+
           {/* Placeholder for other trigger/action types */}
           {currentStep === 'configure' &&
             selectedType !== 'cron' &&
             selectedType !== 'email' &&
+            selectedType !== 'http' &&
             selectedType !== 'transform' && (
               <div className="flex flex-1 items-center justify-center p-6">
                 <p className="text-sm text-gray-500">

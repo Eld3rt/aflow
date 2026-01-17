@@ -13,6 +13,7 @@ import { FormatterConfigureStep } from './FormatterConfigureStep';
 import { HttpConfigureStep } from './HttpConfigureStep';
 import { DatabaseSetupStep } from './DatabaseSetupStep';
 import { DatabaseConfigureStep } from './DatabaseConfigureStep';
+import { TelegramConfigureStep } from './TelegramConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -174,6 +175,14 @@ export function StepConfigPanel() {
         !!config.connection &&
         !!config.table &&
         !!config.operation
+      );
+    }
+    // For Telegram actions, check if botToken, chatId, and message exist
+    if (selectedNode.type === 'telegram') {
+      return (
+        !!selectedNode.config.botToken &&
+        !!selectedNode.config.chatId &&
+        !!selectedNode.config.message
       );
     }
     // For other types, check if config has meaningful data
@@ -341,13 +350,29 @@ export function StepConfigPanel() {
             />
           )}
 
+          {currentStep === 'configure' && selectedType === 'telegram' && (
+            <TelegramConfigureStep
+              initialValues={
+                selectedNode?.type === 'telegram'
+                  ? (selectedNode.config as Partial<{
+                      botToken: string;
+                      chatId: string;
+                      message: string;
+                    }>)
+                  : undefined
+              }
+              onSave={handleConfigureSave}
+            />
+          )}
+
           {/* Placeholder for other trigger/action types */}
           {currentStep === 'configure' &&
             selectedType !== 'cron' &&
             selectedType !== 'email' &&
             selectedType !== 'http' &&
             selectedType !== 'transform' &&
-            selectedType !== 'database' && (
+            selectedType !== 'database' &&
+            selectedType !== 'telegram' && (
               <div className="flex flex-1 items-center justify-center p-6">
                 <p className="text-sm text-gray-500">
                   Configuration for {selectedType} is not yet implemented.

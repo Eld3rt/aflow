@@ -23,6 +23,7 @@ export interface CreateWorkflowRequest {
   name: string;
   status: string;
   trigger?: {
+    id?: string; // Optional trigger ID - if provided, will be used instead of auto-generated
     type: string;
     config: Record<string, unknown>;
   };
@@ -37,6 +38,7 @@ export interface UpdateWorkflowRequest {
   name?: string;
   status?: string;
   trigger?: {
+    id?: string; // Optional trigger ID - if provided, will be used instead of auto-generated
     type: string;
     config: Record<string, unknown>;
   };

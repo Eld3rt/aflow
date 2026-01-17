@@ -16,6 +16,7 @@ import { DatabaseSetupStep } from './DatabaseSetupStep';
 import { DatabaseConfigureStep } from './DatabaseConfigureStep';
 import { TelegramConfigureStep } from './TelegramConfigureStep';
 import { EmailTriggerConfigureStep } from './EmailTriggerConfigureStep';
+import { WebhookTriggerConfigureStep } from './WebhookTriggerConfigureStep';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -113,6 +114,7 @@ export function StepConfigPanel() {
   const [databaseType, setDatabaseType] = useState<string>('');
   const [inboundEmail, setInboundEmail] = useState<string>('');
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  const [webhookTriggerId, setWebhookTriggerId] = useState<string>('');
 
   const selectedNode =
     selectedNodeType === 'trigger'
@@ -139,6 +141,15 @@ export function StepConfigPanel() {
         const config = selectedNode.config as Record<string, unknown>;
         setInboundEmail((config.inboundEmail as string) || '');
       }
+      // Extract trigger ID from existing trigger for webhook triggers
+      // For webhook triggers, the trigger ID is stored in the trigger object itself (not in config)
+      if (selectedNode.type === 'webhook' && selectedNodeType === 'trigger') {
+        // If trigger already exists (has an ID), use it; otherwise we'll generate on continue
+        // The trigger ID is stored in the trigger.id field
+        if (selectedNode.id) {
+          setWebhookTriggerId(selectedNode.id);
+        }
+      }
       // Extract subtype from config if it exists (for schedule triggers)
       if (selectedNode.type === 'cron' && selectedNode.config.subtype) {
       }
@@ -155,6 +166,7 @@ export function StepConfigPanel() {
       setTransformType('');
       setDatabaseType('');
       setInboundEmail('');
+      setWebhookTriggerId('');
       setCurrentStep('setup');
     }
   }, [selectedNode]);
@@ -173,6 +185,10 @@ export function StepConfigPanel() {
     // Reset email state when changing trigger type
     if (type !== 'email') {
       setInboundEmail('');
+    }
+    // Reset webhook state when changing trigger type
+    if (type !== 'webhook') {
+      setWebhookTriggerId('');
     }
   };
 
@@ -205,6 +221,14 @@ export function StepConfigPanel() {
       } else {
         setCurrentStep('configure');
       }
+    } else if (selectedType === 'webhook' && selectedNodeType === 'trigger') {
+      // For webhook triggers, generate UUID before continuing
+      if (!webhookTriggerId) {
+        // Generate UUID once - it will remain stable
+        const triggerId = crypto.randomUUID();
+        setWebhookTriggerId(triggerId);
+      }
+      setCurrentStep('configure');
     } else {
       setCurrentStep('configure');
     }
@@ -219,8 +243,15 @@ export function StepConfigPanel() {
       };
 
       if (selectedNodeType === 'trigger') {
+        // For webhook triggers, store the trigger ID in the trigger object
+        // The trigger ID will be used when publishing the workflow
+        const triggerId =
+          selectedType === 'webhook' && webhookTriggerId
+            ? webhookTriggerId
+            : trigger?.id || `trigger-${Date.now()}`;
+
         setTrigger({
-          id: trigger?.id || `trigger-${Date.now()}`,
+          id: triggerId,
           type: selectedType,
           config: finalConfig,
         });
@@ -263,6 +294,12 @@ export function StepConfigPanel() {
     // For email triggers, check if inboundEmail exists
     if (selectedNode.type === 'email' && selectedNodeType === 'trigger') {
       return !!selectedNode.config.inboundEmail;
+    }
+    // For webhook triggers, check if trigger has an ID (webhook triggers don't need config)
+    if (selectedNode.type === 'webhook' && selectedNodeType === 'trigger') {
+      // Webhook triggers are complete if they have been configured (trigger ID exists)
+      // The trigger ID is stored in the trigger object itself, not in config
+      return !!trigger?.id || !!selectedNode.id;
     }
     // For email actions, check if all required fields exist
     if (selectedNode.type === 'email' && selectedNodeType === 'action') {
@@ -376,7 +413,8 @@ export function StepConfigPanel() {
                 hideContinueButton={
                   selectedType === 'transform' ||
                   selectedType === 'database' ||
-                  (selectedType === 'email' && selectedNodeType === 'trigger')
+                  (selectedType === 'email' && selectedNodeType === 'trigger') ||
+                  (selectedType === 'webhook' && selectedNodeType === 'trigger')
                 }
               />
               {selectedType === 'transform' && (
@@ -415,6 +453,18 @@ export function StepConfigPanel() {
                     </button>
                   </div>
                 ))}
+              {selectedType === 'webhook' && selectedNodeType === 'trigger' && (
+                <div className="border-t border-gray-200 p-6">
+                  <button
+                    type="button"
+                    onClick={handleSetupContinue}
+                    disabled={!selectedType}
+                    className="w-full rounded-md px-4 py-2 text-sm font-medium text-white transition-colors bg-neutral-600 hover:bg-neutral-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -453,6 +503,19 @@ export function StepConfigPanel() {
             selectedNodeType === 'trigger' && (
               <EmailTriggerConfigureStep
                 inboundEmail={inboundEmail}
+                onSave={handleConfigureSave}
+              />
+            )}
+
+          {currentStep === 'configure' &&
+            selectedType === 'webhook' &&
+            selectedNodeType === 'trigger' && (
+              <WebhookTriggerConfigureStep
+                webhookUrl={
+                  webhookTriggerId
+                    ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/webhooks/${webhookTriggerId}`
+                    : ''
+                }
                 onSave={handleConfigureSave}
               />
             )}

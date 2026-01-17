@@ -41,6 +41,17 @@ export function validateCreateWorkflowRequest(
       return { valid: false, error: 'Trigger must be an object if provided' };
     }
     const trigger = obj.trigger as Record<string, unknown>;
+    
+    // Validate optional trigger ID
+    if (trigger.id !== undefined) {
+      if (typeof trigger.id !== 'string' || trigger.id.trim().length === 0) {
+        return {
+          valid: false,
+          error: 'Trigger ID must be a non-empty string if provided',
+        };
+      }
+    }
+    
     if (
       !trigger.type ||
       typeof trigger.type !== 'string' ||
@@ -130,6 +141,9 @@ export function validateCreateWorkflowRequest(
       status: obj.status as string,
       trigger: obj.trigger
         ? {
+            id: (obj.trigger as Record<string, unknown>).id as
+              | string
+              | undefined,
             type: (obj.trigger as Record<string, unknown>).type as string,
             config: (obj.trigger as Record<string, unknown>).config as Record<
               string,

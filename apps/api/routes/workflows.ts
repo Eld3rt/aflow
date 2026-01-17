@@ -80,12 +80,24 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
       // Create trigger if provided
       if (trigger) {
+        const triggerData: {
+          id?: string;
+          type: string;
+          config: InputJsonValue;
+          workflowId: string;
+        } = {
+          type: trigger.type,
+          config: trigger.config as InputJsonValue,
+          workflowId: createdWorkflow.id,
+        };
+
+        // If trigger ID is provided, use it; otherwise let Prisma auto-generate
+        if (trigger.id) {
+          triggerData.id = trigger.id;
+        }
+
         await tx.trigger.create({
-          data: {
-            type: trigger.type,
-            config: trigger.config as InputJsonValue,
-            workflowId: createdWorkflow.id,
-          },
+          data: triggerData,
         });
       }
 
@@ -236,12 +248,24 @@ router.put('/:id', async (req: AuthenticatedRequest, res) => {
 
       // Create new trigger if provided
       if (trigger) {
+        const triggerData: {
+          id?: string;
+          type: string;
+          config: InputJsonValue;
+          workflowId: string;
+        } = {
+          type: trigger.type,
+          config: trigger.config as InputJsonValue,
+          workflowId: id,
+        };
+
+        // If trigger ID is provided, use it; otherwise let Prisma auto-generate
+        if (trigger.id) {
+          triggerData.id = trigger.id;
+        }
+
         await tx.trigger.create({
-          data: {
-            type: trigger.type,
-            config: trigger.config as InputJsonValue,
-            workflowId: id,
-          },
+          data: triggerData,
         });
       }
 

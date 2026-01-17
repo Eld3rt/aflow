@@ -102,6 +102,9 @@ export function EditorPage() {
         name: workflow.name,
         status: 'published',
         trigger: {
+          // For webhook triggers, pass the trigger ID so backend can use it
+          // For other triggers, ID is optional and will be auto-generated if not provided
+          ...(trigger.id && trigger.type === 'webhook' ? { id: trigger.id } : {}),
           type: trigger.type,
           config: trigger.config,
         },

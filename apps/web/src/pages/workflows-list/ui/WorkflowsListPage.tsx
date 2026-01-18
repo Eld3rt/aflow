@@ -3,14 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
+import { Database, PlayCircle } from 'lucide-react';
 import { DashboardNav } from '@aflow/web/widgets/dashboard-nav';
 import { WorkflowCard } from '@aflow/web/widgets/workflow-card';
-import { fetchWorkflows } from '@aflow/web/shared/lib/api-client';
-import type { WorkflowResponse } from '@aflow/web/shared/types/workflows';
+import {
+  fetchWorkflows,
+  fetchGlobalStatistics,
+} from '@aflow/web/shared/lib/api-client';
+import type {
+  WorkflowResponse,
+  GlobalStatisticsResponse,
+} from '@aflow/web/shared/types/workflows';
 
 export function WorkflowsListPage() {
   const { getToken } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
+  const [globalStats, setGlobalStats] = useState<GlobalStatisticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,8 +29,12 @@ export function WorkflowsListPage() {
         setIsLoading(true);
         setError(null);
         const token = await getToken();
-        const data = await fetchWorkflows(token);
-        setWorkflows(data);
+        const [workflowsData, statsData] = await Promise.all([
+          fetchWorkflows(token),
+          fetchGlobalStatistics(token).catch(() => null), // Don't fail if stats fail
+        ]);
+        setWorkflows(workflowsData);
+        setGlobalStats(statsData);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to load workflows';
@@ -70,6 +82,41 @@ export function WorkflowsListPage() {
               Manage and monitor your automated workflows
             </p>
           </div>
+
+          {globalStats && (
+            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-gray-200 bg-white p-6">
+                <div className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-gray-600" />
+                  <p className="text-sm font-medium text-gray-600">Total Workflows</p>
+                </div>
+                <p className="mt-2 text-3xl font-semibold text-gray-900">
+                  {globalStats.totalWorkflows}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-6">
+                <div className="flex items-center gap-2">
+                  <PlayCircle className="h-5 w-5 text-gray-600" />
+                  <p className="text-sm font-medium text-gray-600">Total Executions</p>
+                </div>
+                <p className="mt-2 text-3xl font-semibold text-gray-900">
+                  {globalStats.totalExecutions}
+                </p>
+              </div>
+              <div className="rounded-lg border border-green-200 bg-green-50 p-6">
+                <p className="text-sm font-medium text-green-900">Successful</p>
+                <p className="mt-2 text-3xl font-semibold text-green-900">
+                  {globalStats.successCount}
+                </p>
+              </div>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+                <p className="text-sm font-medium text-red-900">Failed</p>
+                <p className="mt-2 text-3xl font-semibold text-red-900">
+                  {globalStats.failureCount}
+                </p>
+              </div>
+            </div>
+          )}
 
           {workflows.length === 0 ? (
             <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">

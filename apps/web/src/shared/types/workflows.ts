@@ -86,3 +86,11 @@ export interface WorkflowStatisticsResponse {
   failureCount: number;
   pausedCount: number;
 }
+
+export interface GlobalStatisticsResponse {
+  totalWorkflows: number;
+  totalExecutions: number;
+  successCount: number;
+  failureCount: number;
+  pausedCount: number;
+}

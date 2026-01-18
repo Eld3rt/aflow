@@ -166,6 +166,47 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// GET /workflows/statistics (global statistics across all workflows)
+// Must be before /:id route to avoid matching "statistics" as an ID
+router.get('/statistics', async (req: AuthenticatedRequest, res) => {
+  const userId = req.userId!; // Set by auth middleware
+
+  try {
+    // Get all workflows for user
+    const workflows = await prisma.workflow.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+
+    const workflowIds = workflows.map((w) => w.id);
+
+    // Get all executions for user's workflows
+    const executions = await prisma.workflowExecution.findMany({
+      where: { workflowId: { in: workflowIds } },
+      select: { status: true },
+    });
+
+    // Calculate global statistics
+    const totalExecutions = executions.length;
+    const successCount = executions.filter(
+      (e) => e.status === 'completed',
+    ).length;
+    const failureCount = executions.filter((e) => e.status === 'failed').length;
+    const pausedCount = executions.filter((e) => e.status === 'paused').length;
+
+    res.status(200).json({
+      totalWorkflows: workflows.length,
+      totalExecutions,
+      successCount,
+      failureCount,
+      pausedCount,
+    });
+  } catch (error) {
+    console.error('Error fetching global statistics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /workflows/:id
 router.get('/:id', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

@@ -6,6 +6,7 @@ import type {
   ExecutionDetailResponse,
   ExecutionLogResponse,
   WorkflowStatisticsResponse,
+  GlobalStatisticsResponse,
 } from '../types/workflows';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -176,4 +177,17 @@ export async function fetchWorkflowStatistics(
     throw new Error(`Failed to fetch statistics: ${response.statusText}`);
   }
   return response.json() as Promise<WorkflowStatisticsResponse>;
+}
+
+export async function fetchGlobalStatistics(
+  token?: string | null,
+): Promise<GlobalStatisticsResponse> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(`${API_BASE_URL}/workflows/statistics`, {
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch global statistics: ${response.statusText}`);
+  }
+  return response.json() as Promise<GlobalStatisticsResponse>;
 }

@@ -139,7 +139,7 @@ export function WorkflowDetailsPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <div className="rounded-md bg-gray-50 p-4">
                 <p className="text-sm text-gray-600">Steps</p>
                 <p className="mt-1 text-2xl font-semibold text-gray-900">
@@ -166,6 +166,17 @@ export function WorkflowDetailsPage() {
                       {statistics.totalExecutions > 0
                         ? Math.round(
                             (statistics.successCount / statistics.totalExecutions) * 100,
+                          )
+                        : 0}
+                      %
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-gray-50 p-4">
+                    <p className="text-sm text-gray-600">Failure Rate</p>
+                    <p className="mt-1 text-2xl font-semibold text-gray-900">
+                      {statistics.totalExecutions > 0
+                        ? Math.round(
+                            (statistics.failureCount / statistics.totalExecutions) * 100,
                           )
                         : 0}
                       %

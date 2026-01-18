@@ -7,11 +7,11 @@ export interface WorkflowExecutionJobData {
   executionId?: string; // For resuming paused executions
 }
 
-export const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '5012', 10),
-  maxRetriesPerRequest: null,
-});
+export const redisConnection = 
+ new Redis(process.env.REDIS_URL!, {
+      maxRetriesPerRequest: null,
+    })
+;
 
 export const workflowExecutionQueue = new Queue<WorkflowExecutionJobData>(
   'workflow-execution',

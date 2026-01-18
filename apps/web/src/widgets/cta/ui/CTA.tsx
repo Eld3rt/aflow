@@ -15,7 +15,7 @@ export function CTA() {
             Create your first workflow in minutes. No credit card required.
           </p>
           <div className="mt-10 flex items-center justify-center">
-            <SignUpButton fallbackRedirectUrl='/app/dashboard' mode="modal">
+            <SignUpButton fallbackRedirectUrl='/app' mode="modal">
               <button className="flex items-center gap-2 cursor-pointer rounded-lg bg-gray-900 px-8 py-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-gray-800">
                 Get started
                 <ArrowRight className="h-5 w-5" />

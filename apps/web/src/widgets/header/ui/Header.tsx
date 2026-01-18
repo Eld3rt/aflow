@@ -39,12 +39,12 @@ export function Header() {
         </div>
         <div className="flex items-center gap-x-4">
           <div className="hidden items-center gap-x-4 sm:flex">
-            <SignInButton fallbackRedirectUrl='/app/dashboard' mode="modal">
+            <SignInButton fallbackRedirectUrl='/app' mode="modal">
               <button className="cursor-pointer text-sm font-medium text-gray-700 transition-colors hover:text-gray-900">
                 Sign in
               </button>
             </SignInButton>
-            <SignUpButton fallbackRedirectUrl='/app/dashboard' mode="modal">
+            <SignUpButton fallbackRedirectUrl='/app' mode="modal">
               <button className="cursor-pointer rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800">
                 Get started
               </button>

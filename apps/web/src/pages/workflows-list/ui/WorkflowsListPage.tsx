@@ -128,7 +128,18 @@ export function WorkflowsListPage() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {workflows.map((workflow) => (
-                <WorkflowCard key={workflow.id} workflow={workflow} />
+                <WorkflowCard
+                  key={workflow.id}
+                  workflow={workflow}
+                  onStatusChange={(updatedWorkflow) => {
+                    // Update the workflow in the list
+                    setWorkflows((prev) =>
+                      prev.map((w) =>
+                        w.id === updatedWorkflow.id ? updatedWorkflow : w,
+                      ),
+                    );
+                  }}
+                />
               ))}
             </div>
           )}

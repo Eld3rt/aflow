@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Workflow } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@aflow/web/shared/lib';
@@ -9,6 +9,7 @@ export function DashboardNav() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isDashboard = pathname === '/app/dashboard';
   const isWorkflowsList = pathname === '/app/workflows';
 
   return (
@@ -24,6 +25,18 @@ export function DashboardNav() {
 
         <div className="flex items-center gap-1">
           <Link
+            href="/app/dashboard"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              isDashboard
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+            )}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Link>
+          <Link
             href="/app/workflows"
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -32,8 +45,8 @@ export function DashboardNav() {
                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900',
             )}
           >
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
+            <Workflow className="h-4 w-4" />
+            Workflows
           </Link>
         </div>
       </div>

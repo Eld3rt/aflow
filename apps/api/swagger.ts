@@ -4,9 +4,9 @@ const options: Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'AFlow API',
+      title: 'aFlow API',
       version: '1.0.0',
-      description: 'REST API for AFlow workflow automation platform',
+      description: 'REST API for aFlow workflow automation platform',
     },
     servers: [
       {

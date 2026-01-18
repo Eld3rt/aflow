@@ -6,7 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import { ArrowLeft } from 'lucide-react';
 import { DashboardNav } from '@aflow/web/widgets/dashboard-nav';
-import { ExecutionCard } from '@aflow/web/widgets/execution-card';
+import { ExecutionCard } from '@aflow/web/entities/execution';
 import { fetchWorkflowExecutions, fetchWorkflow } from '@aflow/web/shared/lib/api-client';
 import type {
   ExecutionResponse,

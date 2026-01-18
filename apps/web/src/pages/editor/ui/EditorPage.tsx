@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
-import { TopNavBar } from '@aflow/web/widgets/editor-top-nav';
-import { WorkflowCanvas } from '@aflow/web/widgets/workflow-canvas';
-import { ConfigPanel } from '@aflow/web/widgets/config-panel';
+import { TopNavBar, WorkflowCanvas } from '@aflow/web/features/workflow-editor';
+import { StepConfigPanel as ConfigPanel } from '@aflow/web/features/configure-step';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
 import {
   fetchWorkflow,

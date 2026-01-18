@@ -5,12 +5,12 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ExternalLink, CheckCircle2, XCircle, PauseCircle, Clock } from 'lucide-react';
-import { cn } from '@aflow/web/shared/lib';
 import { DashboardNav } from '@aflow/web/widgets/dashboard-nav';
+import { WorkflowStatusBadge } from '@aflow/web/entities/workflow';
+import { ToggleWorkflowButton } from '@aflow/web/features/toggle-workflow';
 import {
   fetchWorkflow,
   fetchWorkflowStatistics,
-  updateWorkflow,
 } from '@aflow/web/shared/lib/api-client';
 import type {
   WorkflowResponse,
@@ -27,7 +27,6 @@ export function WorkflowDetailsPage() {
   const [statistics, setStatistics] = useState<WorkflowStatisticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const loadWorkflow = async () => {
@@ -81,97 +80,11 @@ export function WorkflowDetailsPage() {
     );
   }
 
-  const handleToggleStatus = async (enabled: boolean) => {
-    if (!workflow?.id || isToggling) {
-      return;
-    }
-
-    // Only allow toggling if workflow is published or active
-    if (workflow.status !== 'published' && workflow.status !== 'active') {
-      toast.error('Workflow must be published before it can be enabled/disabled');
-      return;
-    }
-
-    const newStatus = enabled ? 'active' : 'published';
-
-    try {
-      setIsToggling(true);
-      const token = await getToken();
-      const result = await updateWorkflow(
-        workflow.id,
-        {
-          name: workflow.name,
-          status: newStatus,
-          trigger: workflow.trigger
-            ? {
-                type: workflow.trigger.type,
-                config: workflow.trigger.config,
-              }
-            : undefined,
-          steps: workflow.steps.map((step) => ({
-            type: step.type,
-            config: step.config,
-            order: step.order,
-          })),
-        },
-        token,
-      );
-
-      setWorkflow(result);
-      toast.success(
-        enabled
-          ? 'Workflow enabled successfully'
-          : 'Workflow disabled successfully',
-      );
-    } catch (err) {
-      // Reload from server to ensure state is correct
-      try {
-        const token = await getToken();
-        const current = await fetchWorkflow(workflow.id, token);
-        setWorkflow(current);
-      } catch (reloadErr) {
-        console.error('Failed to reload workflow after error:', reloadErr);
-      }
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : `Failed to ${enabled ? 'enable' : 'disable'} workflow`;
-      toast.error(errorMessage);
-      console.error('Error updating workflow status:', err);
-    } finally {
-      setIsToggling(false);
-    }
+  const handleStatusChange = (updatedWorkflow: WorkflowResponse) => {
+    setWorkflow(updatedWorkflow);
   };
 
-  // Calculate toggle state (only show toggle for published/active workflows)
   const isPublished = workflow.status === 'published' || workflow.status === 'active';
-  const isEnabled = workflow.status === 'active';
-
-  function getStatusBadge(status: string) {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
-            <CheckCircle2 className="h-4 w-4" />
-            Active
-          </span>
-        );
-      case 'published':
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
-            <Clock className="h-4 w-4" />
-            Published
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
-            <PauseCircle className="h-4 w-4" />
-            Draft
-          </span>
-        );
-    }
-  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -197,51 +110,13 @@ export function WorkflowDetailsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {getStatusBadge(workflow.status)}
+                <WorkflowStatusBadge status={workflow.status} size="md" />
                 {isPublished && (
-                  <div className="flex items-center gap-2">
-                    <label
-                      className={cn(
-                        'flex items-center gap-2 text-sm text-gray-700',
-                        isToggling && 'cursor-wait',
-                      )}
-                    >
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={isEnabled}
-                        aria-disabled={!isPublished || isToggling}
-                        onClick={() => handleToggleStatus(!isEnabled)}
-                        disabled={!isPublished || isToggling}
-                        className={cn(
-                          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2',
-                          isEnabled ? 'bg-green-600' : 'bg-gray-300',
-                          !isPublished && 'cursor-not-allowed opacity-50',
-                          isToggling && 'cursor-wait opacity-75',
-                        )}
-                        title={
-                          !isPublished
-                            ? 'Publish workflow to enable it'
-                            : isEnabled
-                              ? 'Disable workflow'
-                              : 'Enable workflow'
-                        }
-                      >
-                        <span
-                          className={cn(
-                            'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                            isEnabled ? 'translate-x-6' : 'translate-x-1',
-                          )}
-                        >
-                          {isToggling && (
-                            <span className="absolute inset-0 flex items-center justify-center">
-                              <span className="h-2 w-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    </label>
-                  </div>
+                  <ToggleWorkflowButton
+                    workflow={workflow}
+                    onStatusChange={handleStatusChange}
+                    variant="header"
+                  />
                 )}
                 <Link
                   href={`/app/editor?id=${workflow.id}`}

@@ -367,14 +367,6 @@ export function DashboardPage() {
             <div className="rounded-lg border border-gray-200 bg-white p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Executions</h2>
-                {workflows.length > 0 && (
-                  <Link
-                    href={`/app/workflows/${workflows[0]?.id}/executions`}
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
-                  >
-                    View all executions
-                  </Link>
-                )}
               </div>
               {recentExecutions.length === 0 ? (
                 <p className="text-sm text-gray-500">No executions yet</p>

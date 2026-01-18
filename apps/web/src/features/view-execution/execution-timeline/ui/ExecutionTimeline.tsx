@@ -91,14 +91,14 @@ export function ExecutionTimeline({ logs }: ExecutionTimelineProps) {
               {/* Step marker */}
               <div className="absolute left-0 top-1 h-8 w-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
                 <span className="text-xs font-medium text-gray-600">
-                  {group.stepOrder}
+                  {group.stepOrder + 1}
                 </span>
               </div>
 
               <div className="ml-12">
                 <div className="mb-2">
                   <h4 className="text-sm font-medium text-gray-900">
-                    Step {group.stepOrder}
+                    Step {group.stepOrder + 1}
                   </h4>
                   <p className="text-xs text-gray-500 font-mono">
                     {group.stepId.slice(0, 8)}...
@@ -132,20 +132,16 @@ export function ExecutionTimeline({ logs }: ExecutionTimelineProps) {
                               {new Date(event.timestamp).toLocaleString()}
                             </span>
                           </div>
-                          {event.metadata && 
-                            event.metadata.error && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {String(event.metadata.error)}
-                              </p>
-                            )
-                          }
-                          {event.metadata && 
-                            event.metadata.retryCount !== undefined && (
-                              <p className="mt-1 text-xs text-blue-600">
-                                Retry attempt: {event.metadata.retryCount}
-                              </p>
-                            )
-                          }
+                          {event.metadata?.error != null && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {String(event.metadata.error)}
+                            </p>
+                          )}
+                          {event.metadata?.retryCount != null && (
+                            <p className="mt-1 text-xs text-blue-600">
+                              Retry attempt: {Number(event.metadata.retryCount)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -6,8 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import { ArrowLeft, CheckCircle2, XCircle, PauseCircle, Clock } from 'lucide-react';
 import { DashboardNav } from '@aflow/web/widgets/dashboard-nav';
-import { ExecutionTimeline } from '@aflow/web/widgets/execution-timeline';
-import { ExecutionLogs } from '@aflow/web/widgets/execution-logs';
+import { ExecutionTimeline, ExecutionLogs } from '@aflow/web/features/view-execution';
 import {
   fetchExecution,
   fetchExecutionLogs,

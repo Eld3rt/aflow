@@ -5,7 +5,7 @@ import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import { Database, PlayCircle } from 'lucide-react';
 import { DashboardNav } from '@aflow/web/widgets/dashboard-nav';
-import { WorkflowCard } from '@aflow/web/widgets/workflow-card';
+import { WorkflowCard } from '@aflow/web/entities/workflow';
 import {
   fetchWorkflows,
   fetchGlobalStatistics,

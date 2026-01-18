@@ -69,7 +69,7 @@ export function ExecutionLogs({ logs }: ExecutionLogsProps) {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-900">
-                  Step {log.stepOrder}
+                  Step {log.stepOrder + 1}
                 </span>
                 <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 capitalize">
                   {log.eventType}

@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { workflowsRouter } from './routes/workflows.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { syncSchedulerJobs } from '@aflow/queue';
 import { requireAuth, type AuthenticatedRequest } from './utils/auth.js';
+import { swaggerSpec } from './swagger.js';
 
 dotenv.config();
 
@@ -34,6 +36,9 @@ app.use('/workflows', async (req, res, next) => {
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/workflows', workflowsRouter);
 app.use('/webhooks', webhooksRouter);

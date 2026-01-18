@@ -57,7 +57,38 @@ function toWorkflowResponse(workflow: {
   };
 }
 
-// POST /workflows
+/**
+ * @swagger
+ * /workflows:
+ *   post:
+ *     summary: Create a new workflow
+ *     tags: [Workflows]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateWorkflowRequest'
+ *     responses:
+ *       201:
+ *         description: Workflow created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/', async (req: AuthenticatedRequest, res) => {
   const validation = validateCreateWorkflowRequest(req.body);
   if (validation.valid === false) {
@@ -144,7 +175,28 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /workflows
+/**
+ * @swagger
+ * /workflows:
+ *   get:
+ *     summary: List all workflows
+ *     tags: [Workflows]
+ *     responses:
+ *       200:
+ *         description: List of workflows
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/WorkflowResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!; // Set by auth middleware
 
@@ -166,8 +218,26 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /workflows/statistics (global statistics across all workflows)
-// Must be before /:id route to avoid matching "statistics" as an ID
+/**
+ * @swagger
+ * /workflows/statistics:
+ *   get:
+ *     summary: Get global statistics across all workflows
+ *     tags: [Workflows]
+ *     responses:
+ *       200:
+ *         description: Global statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GlobalStatistics'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/statistics', async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!; // Set by auth middleware
 
@@ -207,7 +277,46 @@ router.get('/statistics', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /workflows/:id
+/**
+ * @swagger
+ * /workflows/{id}:
+ *   get:
+ *     summary: Get a specific workflow by ID
+ *     tags: [Workflows]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *     responses:
+ *       200:
+ *         description: Workflow details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowResponse'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {
@@ -237,7 +346,52 @@ router.get('/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// PUT /workflows/:id
+/**
+ * @swagger
+ * /workflows/{id}:
+ *   put:
+ *     summary: Update an existing workflow
+ *     tags: [Workflows]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateWorkflowRequest'
+ *     responses:
+ *       200:
+ *         description: Workflow updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put('/:id', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {
@@ -386,7 +540,46 @@ router.put('/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// DELETE /workflows/:id
+/**
+ * @swagger
+ * /workflows/{id}:
+ *   delete:
+ *     summary: Delete a workflow
+ *     tags: [Workflows]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *     responses:
+ *       200:
+ *         description: Workflow deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DeleteWorkflowResponse'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.delete('/:id', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {
@@ -432,7 +625,48 @@ router.delete('/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /workflows/:id/executions
+/**
+ * @swagger
+ * /workflows/{id}/executions:
+ *   get:
+ *     summary: List all executions for a workflow
+ *     tags: [Executions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *     responses:
+ *       200:
+ *         description: List of executions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ExecutionListItem'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id/executions', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {
@@ -475,7 +709,53 @@ router.get('/:id/executions', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /workflows/:id/executions/:executionId
+/**
+ * @swagger
+ * /workflows/{id}/executions/{executionId}:
+ *   get:
+ *     summary: Get execution details
+ *     tags: [Executions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *       - in: path
+ *         name: executionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Execution ID
+ *     responses:
+ *       200:
+ *         description: Execution details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ExecutionDetail'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow or execution not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get(
   '/:id/executions/:executionId',
   async (req: AuthenticatedRequest, res) => {
@@ -555,7 +835,53 @@ router.get(
   },
 );
 
-// POST /workflows/:id/executions/:executionId/resume
+/**
+ * @swagger
+ * /workflows/{id}/executions/{executionId}/resume:
+ *   post:
+ *     summary: Resume a paused execution
+ *     tags: [Executions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *       - in: path
+ *         name: executionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Execution ID
+ *     responses:
+ *       200:
+ *         description: Execution resume enqueued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ResumeExecutionResponse'
+ *       400:
+ *         description: Execution is not paused or scheduled for future
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow or execution not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post(
   '/:id/executions/:executionId/resume',
   async (req: AuthenticatedRequest, res) => {
@@ -646,7 +972,55 @@ router.post(
   },
 );
 
-// GET /workflows/:id/executions/:executionId/logs
+/**
+ * @swagger
+ * /workflows/{id}/executions/{executionId}/logs:
+ *   get:
+ *     summary: Get execution logs
+ *     tags: [Logs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *       - in: path
+ *         name: executionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Execution ID
+ *     responses:
+ *       200:
+ *         description: List of execution logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ExecutionLog'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow or execution not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get(
   '/:id/executions/:executionId/logs',
   async (req: AuthenticatedRequest, res) => {
@@ -710,7 +1084,46 @@ router.get(
   },
 );
 
-// GET /workflows/:id/statistics
+/**
+ * @swagger
+ * /workflows/{id}/statistics:
+ *   get:
+ *     summary: Get statistics for a specific workflow
+ *     tags: [Workflows]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Workflow ID
+ *     responses:
+ *       200:
+ *         description: Workflow statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowStatistics'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Workflow not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id/statistics', async (req: AuthenticatedRequest, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {

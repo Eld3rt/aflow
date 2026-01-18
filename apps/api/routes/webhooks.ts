@@ -9,9 +9,31 @@ import {
 const router = Router();
 
 /**
- * POST /webhooks/email
- * Generic email webhook endpoint (provider-agnostic).
- * Normalizes email payload and triggers the workflow matching the recipient email address.
+ * @swagger
+ * /webhooks/email:
+ *   post:
+ *     summary: Email webhook endpoint (provider-agnostic)
+ *     description: Normalizes email payload and triggers workflow matching recipient email address
+ *     tags: [Webhooks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WebhookEmailPayload'
+ *     responses:
+ *       200:
+ *         description: Webhook processed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WebhookEmailResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/email', async (req, res) => {
   try {
@@ -103,9 +125,45 @@ router.post('/email', async (req, res) => {
 });
 
 /**
- * POST /webhooks/:triggerId
- * Public webhook endpoint to trigger workflow execution.
- * Receives POST request body as trigger payload and enqueues workflow execution job.
+ * @swagger
+ * /webhooks/{triggerId}:
+ *   post:
+ *     summary: Generic webhook endpoint to trigger workflow execution
+ *     description: Receives POST request body as trigger payload and enqueues workflow execution job
+ *     tags: [Webhooks]
+ *     parameters:
+ *       - in: path
+ *         name: triggerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Trigger ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WebhookGenericPayload'
+ *     responses:
+ *       200:
+ *         description: Webhook received and workflow execution enqueued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WebhookGenericResponse'
+ *       404:
+ *         description: Trigger not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/:triggerId', async (req, res) => {
   const { triggerId } = req.params;

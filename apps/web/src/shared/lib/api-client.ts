@@ -2,6 +2,10 @@ import type {
   WorkflowResponse,
   CreateWorkflowRequest,
   UpdateWorkflowRequest,
+  ExecutionResponse,
+  ExecutionDetailResponse,
+  ExecutionLogResponse,
+  WorkflowStatisticsResponse,
 } from '../types/workflows';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -89,4 +93,87 @@ export async function deleteWorkflow(
   if (!response.ok) {
     throw new Error(`Failed to delete workflow: ${response.statusText}`);
   }
+}
+
+export async function fetchWorkflows(
+  token?: string | null,
+): Promise<WorkflowResponse[]> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(`${API_BASE_URL}/workflows`, {
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch workflows: ${response.statusText}`);
+  }
+  return response.json() as Promise<WorkflowResponse[]>;
+}
+
+export async function fetchWorkflowExecutions(
+  workflowId: string,
+  token?: string | null,
+): Promise<ExecutionResponse[]> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(
+    `${API_BASE_URL}/workflows/${workflowId}/executions`,
+    {
+      headers,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch executions: ${response.statusText}`);
+  }
+  return response.json() as Promise<ExecutionResponse[]>;
+}
+
+export async function fetchExecution(
+  workflowId: string,
+  executionId: string,
+  token?: string | null,
+): Promise<ExecutionDetailResponse> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(
+    `${API_BASE_URL}/workflows/${workflowId}/executions/${executionId}`,
+    {
+      headers,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch execution: ${response.statusText}`);
+  }
+  return response.json() as Promise<ExecutionDetailResponse>;
+}
+
+export async function fetchExecutionLogs(
+  workflowId: string,
+  executionId: string,
+  token?: string | null,
+): Promise<ExecutionLogResponse[]> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(
+    `${API_BASE_URL}/workflows/${workflowId}/executions/${executionId}/logs`,
+    {
+      headers,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch execution logs: ${response.statusText}`);
+  }
+  return response.json() as Promise<ExecutionLogResponse[]>;
+}
+
+export async function fetchWorkflowStatistics(
+  workflowId: string,
+  token?: string | null,
+): Promise<WorkflowStatisticsResponse> {
+  const headers = getAuthHeaders(token);
+  const response = await fetch(
+    `${API_BASE_URL}/workflows/${workflowId}/statistics`,
+    {
+      headers,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch statistics: ${response.statusText}`);
+  }
+  return response.json() as Promise<WorkflowStatisticsResponse>;
 }

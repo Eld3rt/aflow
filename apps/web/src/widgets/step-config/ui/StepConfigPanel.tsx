@@ -331,15 +331,37 @@ export function StepConfigPanel() {
     // User can close manually if needed
   };
 
+  const getTypeDisplayName = (type: string, nodeType: 'trigger' | 'action'): string => {
+    const typeMap: Record<string, string> = {
+      cron: 'Cron',
+      email: 'Email',
+      webhook: 'Webhook',
+      http: 'HTTP',
+      database: 'Database',
+      telegram: 'Telegram',
+      transform: 'Transform',
+    };
+    
+    const displayName = typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1);
+    const suffix = nodeType === 'trigger' ? 'Trigger' : 'Action';
+    return `${displayName} ${suffix}`;
+  };
+
   const getNodeTitle = () => {
-    if (!selectedNodeType) return 'Configuration';
+    if (!selectedNodeType || !selectedType) return 'Configuration';
+    
+    let stepNumber: number;
+    
     if (selectedNodeType === 'trigger') {
-      if (selectedType === 'cron') {
-        return '1. Cron Trigger';
-      }
-      return '1. Trigger';
+      stepNumber = 1;
+    } else {
+      // For actions, find the action in the actions array and get its order
+      const action = actions.find((a) => a.id === selectedNodeId);
+      stepNumber = action ? action.order + 2 : 2;
     }
-    return 'Action';
+    
+    const displayName = getTypeDisplayName(selectedType, selectedNodeType);
+    return `${stepNumber}. ${displayName}`;
   };
 
   // Check if configure step is completed (has saved config)

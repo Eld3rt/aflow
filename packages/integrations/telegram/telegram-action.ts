@@ -81,11 +81,11 @@ export class TelegramActionExecutor implements StepExecutor {
     }
 
     // Return confirmation output (will be merged into context)
+    // Frontend schema expects "chatId" and "message" for user-friendly templating
     return {
       output: {
-        telegramSent: true,
-        messageId: responseData.result?.message_id,
-        chatId: responseData.result?.chat?.id || chatId,
+        chatId: responseData.result?.chat?.id || parseInt(chatId, 10),
+        message: responseData.result?.text || templatedMessage,
       },
     };
   }

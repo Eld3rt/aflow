@@ -53,13 +53,22 @@ export class PostgresClient implements DatabaseClient {
     database: string;
     user: string;
     password: string;
+    ssl?: boolean | { rejectUnauthorized?: boolean };
   }) {
+    // Default to requiring SSL (equivalent to sslmode=require)
+    // This ensures secure connections by default while allowing
+    // users to override for local development or specific requirements
+    const sslConfig = config.ssl !== undefined 
+      ? config.ssl 
+      : { rejectUnauthorized: false };
+
     this.client = new pg.Client({
       host: config.host,
       port: config.port,
       database: config.database,
       user: config.user,
       password: config.password,
+      ssl: sslConfig,
     });
   }
 
@@ -155,6 +164,7 @@ export class MysqlClient implements DatabaseClient {
     database: string;
     user: string;
     password: string;
+    ssl?: boolean | { rejectUnauthorized?: boolean };
   };
 
   constructor(config: {
@@ -163,18 +173,41 @@ export class MysqlClient implements DatabaseClient {
     database: string;
     user: string;
     password: string;
+    ssl?: boolean | { rejectUnauthorized?: boolean };
   }) {
     this.config = config;
   }
 
   async connect(): Promise<void> {
-    this.connection = await mysql.createConnection({
+    const connectionConfig: mysql.ConnectionOptions = {
       host: this.config.host,
       port: this.config.port,
       database: this.config.database,
       user: this.config.user,
       password: this.config.password,
-    });
+    };
+
+    // Handle SSL configuration
+    // Default to requiring SSL (equivalent to sslmode=require)
+    // This ensures secure connections by default while allowing
+    // users to override for local development or specific requirements
+    if (this.config.ssl !== undefined) {
+      if (this.config.ssl === false) {
+        // SSL disabled - omit ssl property to allow non-SSL connections
+        // Don't set connectionConfig.ssl (undefined means no SSL)
+      } else if (typeof this.config.ssl === 'boolean') {
+        // SSL enabled with boolean true - use default secure setting
+        connectionConfig.ssl = { rejectUnauthorized: false };
+      } else {
+        // SSL enabled with config object
+        connectionConfig.ssl = this.config.ssl;
+      }
+    } else {
+      // Default: require SSL (but don't verify certificate, similar to PostgreSQL default)
+      connectionConfig.ssl = { rejectUnauthorized: false };
+    }
+
+    this.connection = await mysql.createConnection(connectionConfig);
   }
 
   async query(sql: string, params?: unknown[]): Promise<unknown[]> {

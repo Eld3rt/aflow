@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -93,7 +92,6 @@ export function ScheduleConfigureStep({
     register,
     handleSubmit,
     watch,
-    reset,
     formState: { errors, isValid },
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
@@ -106,20 +104,7 @@ export function ScheduleConfigureStep({
     mode: 'onChange',
   });
 
-  // Reset form when initialValues change (e.g., when reopening with saved config)
-  useEffect(() => {
-    if (initialValues) {
-      reset({
-        frequencyType: initialValues.frequencyType || 'daily',
-        interval: initialValues.interval || 1,
-        startDate: initialValues.startDate || '',
-        timeOfDay: initialValues.timeOfDay || '',
-      });
-    }
-  }, [initialValues, reset]);
-
   const frequencyType = watch('frequencyType');
-  const interval = watch('interval');
 
   const getIntervalLabel = () => {
     switch (frequencyType) {

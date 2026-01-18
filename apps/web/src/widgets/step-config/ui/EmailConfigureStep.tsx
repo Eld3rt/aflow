@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@aflow/web/shared/lib/cn';
+import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 const emailSchema = z
   .object({
@@ -58,10 +60,22 @@ export function EmailConfigureStep({
   initialValues,
   onSave,
 }: EmailConfigureStepProps) {
+  const trigger = useEditorStore((state) => state.trigger);
+  const actions = useEditorStore((state) => state.actions);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  // Find current step order
+  const currentStep = actions.find((a) => a.id === selectedNodeId);
+  const currentStepOrder = currentStep?.order ?? null;
+
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Track the last focused input/textarea element
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isValid },
   } = useForm<EmailFormData>({
     resolver: zodResolver(emailSchema),
@@ -73,16 +87,22 @@ export function EmailConfigureStep({
     mode: 'onChange',
   });
 
-  // Reset form when initialValues change (e.g., when reopening with saved config)
-  useEffect(() => {
-    if (initialValues) {
-      reset({
-        to: initialValues.to || '',
-        subject: initialValues.subject || '',
-        body: initialValues.body || '',
-      });
+  const handleFieldClick = (path: string) => {
+    // Use tracked element if available, otherwise fall back to document.activeElement
+    const targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
     }
-  }, [initialValues, reset]);
+  };
+
+  // Handler to track focused elements
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    lastFocusedElementRef.current = e.target;
+  };
 
   const onSubmit = (data: EmailFormData) => {
     // Data is already transformed by Zod schema
@@ -114,12 +134,14 @@ export function EmailConfigureStep({
             <input
               type="text"
               {...register('to')}
-              placeholder="user@example.com, another@example.com"
+              onFocus={handleInputFocus}
+              placeholder="user@example.com, {'{{from}}'}"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
             />
             <p className="mt-1 text-xs text-gray-500">
               You can enter multiple email addresses separated by commas.
-              Limited to 5.
+              Limited to 5. Use placeholders like {'{{from}}'} from the Available
+              Data panel.
             </p>
             {errors.to && (
               <p className="mt-1 text-xs text-red-600">{errors.to.message}</p>
@@ -140,7 +162,8 @@ export function EmailConfigureStep({
             <input
               type="text"
               {...register('subject')}
-              placeholder="Enter email subject"
+              onFocus={handleInputFocus}
+              placeholder={'Hello {{from}}'}
               maxLength={255}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
             />
@@ -164,12 +187,14 @@ export function EmailConfigureStep({
             </label>
             <textarea
               {...register('body')}
-              placeholder="Enter email body (plain text or HTML)"
+              onFocus={handleInputFocus}
+              placeholder={'Hello {{from}}, you received: {{subject}}'}
               rows={8}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black resize-y"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Plain text or HTML supported
+              Plain text or HTML supported. Use placeholders from Available
+              Data panel.
             </p>
             {errors.body && (
               <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>

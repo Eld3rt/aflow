@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@aflow/web/shared/lib/cn';
 import { Plus, Trash2 } from 'lucide-react';
+import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 // Zod schema for HTTP action configuration
 const httpSchema = z
@@ -24,19 +26,14 @@ const httpSchema = z
         },
         { message: 'Must be a valid URL' },
       ),
-    method: z.enum(['GET', 'POST'], {
-      required_error: 'HTTP method is required',
-    }),
-    headers: z
-      .array(
-        z.object({
-          key: z.string().min(1, 'Header key is required'),
-          value: z.string().min(1, 'Header value is required'),
-        }),
-      )
-      .optional()
-      .default([]),
-    body: z.union([z.string(), z.record(z.unknown())]).optional(),
+    method: z.enum(['GET', 'POST']),
+    headers: z.array(
+      z.object({
+        key: z.string().min(1, 'Header key is required'),
+        value: z.string().min(1, 'Header value is required'),
+      }),
+    ),
+    body: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   })
   .refine(
     (data) => {
@@ -52,7 +49,12 @@ const httpSchema = z
     },
   );
 
-type HttpFormData = z.infer<typeof httpSchema>;
+type HttpFormData = {
+  url: string;
+  method: 'GET' | 'POST';
+  headers: Array<{ key: string; value: string }>;
+  body?: string | Record<string, unknown>;
+};
 
 interface HttpConfigureStepProps {
   initialValues?: Record<string, unknown>;
@@ -65,12 +67,41 @@ export function HttpConfigureStep({
 }: HttpConfigureStepProps) {
   const [bodyType, setBodyType] = useState<'string' | 'json'>('string');
 
+  const trigger = useEditorStore((state) => state.trigger);
+  const actions = useEditorStore((state) => state.actions);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const currentStep = actions.find((a) => a.id === selectedNodeId);
+  const currentStepOrder = currentStep?.order ?? null;
+
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Track the last focused input/textarea element
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  const handleFieldClick = (path: string) => {
+    // Use tracked element if available, otherwise fall back to document.activeElement
+    const targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
+    }
+  };
+
+  // Handler to track focused elements
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    lastFocusedElementRef.current = e.target;
+  };
+
   const {
     register,
     handleSubmit,
-    reset,
     watch,
     control,
+    setValue,
     formState: { errors, isValid },
   } = useForm<HttpFormData>({
     resolver: zodResolver(httpSchema),
@@ -82,7 +113,14 @@ export function HttpConfigureStep({
             ([key, value]) => ({ key, value }),
           )
         : [],
-      body: initialValues?.body || '',
+      body: (() => {
+        const initialMethod = (initialValues?.method as 'GET' | 'POST') || 'GET';
+        // Don't set body for GET requests
+        if (initialMethod === 'GET') {
+          return undefined;
+        }
+        return initialValues?.body || '';
+      })(),
     },
     mode: 'onChange',
   });
@@ -93,52 +131,13 @@ export function HttpConfigureStep({
   });
 
   const method = watch('method');
-  const body = watch('body');
 
-  // Reset form when initialValues change
-  useEffect(() => {
-    if (initialValues) {
-      const headers = initialValues.headers
-        ? Object.entries(initialValues.headers as Record<string, string>).map(
-            ([key, value]) => ({ key, value }),
-          )
-        : [];
-
-      // Determine body type and format
-      const bodyValue = initialValues.body;
-      let formattedBody: string | undefined;
-      if (bodyValue) {
-        if (typeof bodyValue === 'object') {
-          setBodyType('json');
-          formattedBody = JSON.stringify(bodyValue, null, 2);
-        } else {
-          setBodyType('string');
-          formattedBody = String(bodyValue);
-        }
-      } else {
-        setBodyType('string');
-        formattedBody = undefined;
-      }
-
-      reset({
-        url: (initialValues.url as string) || '',
-        method: (initialValues.method as 'GET' | 'POST') || 'GET',
-        headers,
-        body: formattedBody,
-      });
-    }
-  }, [initialValues, reset]);
-
-  // Reset body when method changes from POST to GET
+  // Clear body field when method changes to GET
   useEffect(() => {
     if (method === 'GET') {
-      const currentValues = watch();
-      reset({
-        ...currentValues,
-        body: undefined,
-      });
+      setValue('body', undefined, { shouldValidate: true });
     }
-  }, [method, reset, watch]);
+  }, [method, setValue]);
 
   const onSubmit = (data: HttpFormData) => {
     // Convert headers array to object format expected by backend
@@ -256,7 +255,8 @@ export function HttpConfigureStep({
                     <input
                       type="text"
                       {...register(`headers.${index}.value` as const)}
-                      placeholder="Header value"
+                      onFocus={handleInputFocus}
+                      placeholder={'Header value or {{placeholder}}'}
                       className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                     />
                     <button
@@ -315,13 +315,15 @@ export function HttpConfigureStep({
               {bodyType === 'string' ? (
                 <textarea
                   {...register('body')}
-                  placeholder="Request body (plain text)"
+                  onFocus={handleInputFocus}
+                  placeholder={'Request body or use {{placeholder}}'}
                   rows={6}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black resize-y font-mono"
                 />
               ) : (
                 <textarea
                   {...register('body')}
+                  onFocus={handleInputFocus}
                   placeholder='{"key": "value"}'
                   rows={6}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black resize-y font-mono"
@@ -341,7 +343,7 @@ export function HttpConfigureStep({
               <p className="mt-1 text-xs text-gray-500">
                 {bodyType === 'json'
                   ? 'Enter valid JSON. The backend will parse this as an object.'
-                  : 'Plain text body. Supports templating from workflow context.'}
+                  : 'Plain text body. Use placeholders from Available Data panel. Values will be resolved when the workflow runs.'}
               </p>
               {errors.body && (
                 <p className="mt-1 text-xs text-red-600">

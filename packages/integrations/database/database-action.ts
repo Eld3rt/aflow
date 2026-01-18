@@ -169,11 +169,10 @@ export class DatabaseActionExecutor implements StepExecutor {
       }
 
       // Return result in output (will be merged into context)
+      // Frontend schema expects "result" not "databaseResult" for user-friendly templating
       return {
         output: {
-          databaseResult: result,
-          operation,
-          table,
+          result,
         },
       };
     } finally {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Zap } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
 import { cn } from '@aflow/web/shared/lib/cn';
 
@@ -28,7 +28,7 @@ export function TriggerCard() {
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gray-100">
-          <Zap className="h-5 w-5 text-gray-600" />
+          <Play className="h-5 w-5 text-gray-600" />
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-medium text-gray-900">Trigger</h3>

@@ -44,9 +44,12 @@ const worker = new Worker<WorkflowExecutionJobData>(
 
       // Optional safety check: Verify workflow is still enabled before execution
       // This handles edge cases where workflow was disabled after job was scheduled
+      // Also load trigger to populate triggerPayload for cron triggers
       const workflow = await prisma.workflow.findUnique({
         where: { id: job.data.workflowId },
-        select: { status: true },
+        include: {
+          trigger: true,
+        },
       });
 
       if (!workflow) {
@@ -60,6 +63,18 @@ const worker = new Worker<WorkflowExecutionJobData>(
         return {
           skipped: true,
           reason: `Workflow is ${workflow.status}`,
+        };
+      }
+
+      // Populate triggerPayload for cron triggers if it's empty
+      // Cron triggers need triggeredAt timestamp at execution time
+      let triggerPayload = job.data.triggerPayload;
+      if (
+        workflow.trigger?.type === 'cron' &&
+        (!triggerPayload || Object.keys(triggerPayload).length === 0)
+      ) {
+        triggerPayload = {
+          triggeredAt: new Date().toISOString(),
         };
       }
 
@@ -120,7 +135,7 @@ const worker = new Worker<WorkflowExecutionJobData>(
       // Execute workflow (new execution or resuming paused execution)
       const result = await workflowExecutor.execute(
         job.data.workflowId,
-        job.data.triggerPayload,
+        triggerPayload,
         job.data.executionId,
       );
 

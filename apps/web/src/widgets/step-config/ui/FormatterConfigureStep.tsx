@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@aflow/web/shared/lib/cn';
+import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 interface FormatterConfigureStepProps {
   formatterType: 'date' | 'number' | 'text';
@@ -46,56 +48,41 @@ const getSchema = (
     case 'number': {
       if (transformType === 'formatNumber') {
         return baseSchema.extend({
-          inputDecimalMark: z.enum(['Comma', 'Period'], {
-            required_error: 'Input decimal mark is required',
-          }),
-          toFormat: z.enum(
-            [
-              'Comma for grouping & period for decimal',
-              'Period for grouping & comma for decimal',
-              'Space for grouping & period for decimal',
-              'Space for grouping & comma for decimal',
-            ],
-            {
-              required_error: 'Output format is required',
-            },
-          ),
+          inputDecimalMark: z.enum(['Comma', 'Period']),
+          toFormat: z.enum([
+            'Comma for grouping & period for decimal',
+            'Period for grouping & comma for decimal',
+            'Space for grouping & period for decimal',
+            'Space for grouping & comma for decimal',
+          ]),
         });
       }
       if (transformType === 'formatPhoneNumber') {
         return baseSchema.extend({
-          toFormat: z.enum(
-            [
-              '+15558001212',
-              '+1 555-800-1212',
-              '(555) 800-1212',
-              '+1-555-800-1212',
-              '555-800-1212',
-              '+1 555 800 1212',
-              '555 800-1212',
-              '5558001212',
-              '15558001212',
-            ],
-            {
-              required_error: 'Phone number format is required',
-            },
-          ),
+          toFormat: z.enum([
+            '+15558001212',
+            '+1 555-800-1212',
+            '(555) 800-1212',
+            '+1-555-800-1212',
+            '555-800-1212',
+            '+1 555 800 1212',
+            '555 800-1212',
+            '5558001212',
+            '15558001212',
+          ]),
         });
       }
       if (transformType === 'performMathOperation') {
         return baseSchema
           .extend({
-            operation: z.enum(
-              ['Add', 'Subtract', 'Multiply', 'Divide', 'Make Negative'],
-              {
-                required_error: 'Math operation is required',
-              },
-            ),
-            operand: z
-              .number({
-                invalid_type_error: 'Operand must be a number',
-              })
-              .optional(),
+            operation: z.enum([
+              'Add',
+              'Subtract',
+              'Multiply',
+              'Divide',
+              'Make Negative',
+            ]),
+            operand: z.number().optional(),
           })
           .refine(
             (data) => {
@@ -114,14 +101,8 @@ const getSchema = (
       if (transformType === 'randomNumber') {
         return z
           .object({
-            lowerRange: z.number({
-              required_error: 'Lower range is required',
-              invalid_type_error: 'Lower range must be a number',
-            }),
-            upperRange: z.number({
-              required_error: 'Upper range is required',
-              invalid_type_error: 'Upper range must be a number',
-            }),
+            lowerRange: z.number(),
+            upperRange: z.number(),
             decimalPoints: z
               .number()
               .int()
@@ -156,7 +137,7 @@ const getSchema = (
   return baseSchema;
 };
 
-type FormData = z.infer<ReturnType<typeof getSchema>>;
+type FormData = Record<string, unknown>;
 
 export function FormatterConfigureStep({
   formatterType,
@@ -164,26 +145,55 @@ export function FormatterConfigureStep({
   initialValues,
   onSave,
 }: FormatterConfigureStepProps) {
+  const trigger = useEditorStore((state) => state.trigger);
+  const actions = useEditorStore((state) => state.actions);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const currentStep = actions.find((a) => a.id === selectedNodeId);
+  const currentStepOrder = currentStep?.order ?? null;
+
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Track the last focused input/textarea element
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  const handleFieldClick = (path: string) => {
+    // Use tracked element if available, otherwise fall back to document.activeElement
+    const targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
+    }
+  };
+
+  // Handler to track focused elements
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    lastFocusedElementRef.current = e.target;
+  };
+
   const schema = getSchema(formatterType, transformType);
   const {
     register,
     handleSubmit,
-    reset,
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
+    // @ts-expect-error - zodResolver returns a union type that doesn't match FormData exactly, but works at runtime
     resolver: zodResolver(schema),
     defaultValues: (initialValues as FormData) || {},
     mode: 'onChange',
   });
 
-  const mathOperation = watch('operation');
-
-  useEffect(() => {
-    if (initialValues) {
-      reset(initialValues as FormData);
-    }
-  }, [initialValues, reset]);
+  const mathOperation = watch('operation' as keyof FormData) as
+    | 'Add'
+    | 'Subtract'
+    | 'Multiply'
+    | 'Divide'
+    | 'Make Negative'
+    | undefined;
 
   const onSubmit = (data: FormData) => {
     // Build config object matching backend schema
@@ -220,7 +230,8 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('input')}
-                  placeholder="Date/time value"
+                  onFocus={handleInputFocus}
+                  placeholder={'Date/time value or {{placeholder}}'}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 {errors.input && (
@@ -236,11 +247,12 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('format')}
-                  placeholder="ISO, RFC3339, or YYYY-MM-DD format"
+                  onFocus={handleInputFocus}
+                  placeholder="ISO or YYYY-MM-DD format"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Use ISO, RFC3339, or custom format (YYYY-MM-DD, etc.)
+                  Use ISO or custom format (YYYY-MM-DD, etc.)
                 </p>
                 {errors.format && (
                   <p className="mt-1 text-xs text-red-600">
@@ -261,7 +273,8 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('input')}
-                  placeholder="Date/time value"
+                  onFocus={handleInputFocus}
+                  placeholder={'Date/time value or {{placeholder}}'}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 {errors.input && (
@@ -277,6 +290,7 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('expression')}
+                  onFocus={handleInputFocus}
                   placeholder="+8 hours 1 minute"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
@@ -306,7 +320,8 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('input')}
-                  placeholder="Number value"
+                  onFocus={handleInputFocus}
+                  placeholder={'Number value or {{placeholder}}'}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 {errors.input && (
@@ -374,7 +389,8 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('input')}
-                  placeholder="Phone number"
+                  onFocus={handleInputFocus}
+                  placeholder={'Phone number or {{placeholder}}'}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 {errors.input && (
@@ -437,7 +453,8 @@ export function FormatterConfigureStep({
                 <input
                   type="text"
                   {...register('input')}
-                  placeholder="Number value"
+                  onFocus={handleInputFocus}
+                  placeholder={'Number value or {{placeholder}}'}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 {errors.input && (
@@ -561,12 +578,13 @@ export function FormatterConfigureStep({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Input <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                {...register('input')}
-                placeholder="Text value"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-              />
+                <input
+                  type="text"
+                  {...register('input')}
+                  onFocus={handleInputFocus}
+                  placeholder={'Text value or {{placeholder}}'}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                />
               {errors.input && (
                 <p className="mt-1 text-xs text-red-600">
                   {errors.input.message}
@@ -582,7 +600,8 @@ export function FormatterConfigureStep({
                   <input
                     type="text"
                     {...register('search')}
-                    placeholder="Text to search for"
+                    onFocus={handleInputFocus}
+                    placeholder={'Text to search for or {{placeholder}}'}
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                   />
                   {errors.search && (
@@ -598,7 +617,8 @@ export function FormatterConfigureStep({
                   <input
                     type="text"
                     {...register('replace')}
-                    placeholder="Replacement text (optional)"
+                    onFocus={handleInputFocus}
+                    placeholder={'Replacement text or {{placeholder}}'}
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                   />
                   {errors.replace && (
@@ -622,7 +642,9 @@ export function FormatterConfigureStep({
       className="flex flex-1 flex-col h-full"
     >
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-4">{renderFields()}</div>
+        <div className="space-y-4">
+          {renderFields()}
+        </div>
       </div>
 
       {/* Footer */}

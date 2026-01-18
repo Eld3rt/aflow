@@ -95,12 +95,14 @@ export class EmailActionExecutor implements StepExecutor {
     }
 
     // Return confirmation output (will be merged into context)
+    // Include body for downstream steps (e.g., Data Formatter)
     return {
       output: {
         emailsSent: results.length,
         emails: results,
         to: templatedTo, // Keep original comma-separated string for backward compatibility
         subject: templatedSubject,
+        body: templatedBody, // Include body for reuse in downstream steps
       },
     };
   }

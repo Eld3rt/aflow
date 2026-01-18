@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Database } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/nextjs';
 import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
@@ -17,6 +17,8 @@ import { DatabaseConfigureStep } from './DatabaseConfigureStep';
 import { TelegramConfigureStep } from './TelegramConfigureStep';
 import { EmailTriggerConfigureStep } from './EmailTriggerConfigureStep';
 import { WebhookTriggerConfigureStep } from './WebhookTriggerConfigureStep';
+import { DraggableAvailableDataPanel } from './DraggableAvailableDataPanel';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 type ConfigStep = 'setup' | 'configure';
 
@@ -115,6 +117,62 @@ export function StepConfigPanel() {
   const [inboundEmail, setInboundEmail] = useState<string>('');
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [webhookTriggerId, setWebhookTriggerId] = useState<string>('');
+  
+  // Available Data Panel state
+  const [isAvailableDataPanelOpen, setIsAvailableDataPanelOpen] = useState(false);
+  const [availableDataPanelPosition, setAvailableDataPanelPosition] = useState({ x: 100, y: 100 });
+  const configPanelRef = useRef<HTMLDivElement>(null);
+  
+  // Track focused input/textarea for template insertion
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Shared handler for template insertion from the draggable panel
+  const handleAvailableDataFieldClick = useCallback((path: string) => {
+    // Try to use tracked element, or find active element in the form
+    let targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    // If no tracked element, try to find the last input/textarea in the config panel
+    if (!targetElement || (!(targetElement instanceof HTMLInputElement) && !(targetElement instanceof HTMLTextAreaElement))) {
+      const configPanel = document.querySelector('[data-config-panel]');
+      if (configPanel) {
+        const inputs = configPanel.querySelectorAll('input, textarea');
+        if (inputs.length > 0) {
+          targetElement = inputs[inputs.length - 1] as HTMLInputElement | HTMLTextAreaElement;
+        }
+      }
+    }
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
+      // Re-focus the input after insertion
+      targetElement.focus();
+    }
+  }, [insertTemplate]);
+
+  // Track focus changes on inputs/textareas in the panel
+  useEffect(() => {
+    const configPanel = document.querySelector('[data-config-panel]');
+    if (!configPanel) return;
+
+    const handleFocus = (e: Event) => {
+      const target = e.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+      ) {
+        lastFocusedElementRef.current = target;
+      }
+    };
+
+    configPanel.addEventListener('focusin', handleFocus);
+    return () => {
+      configPanel.removeEventListener('focusin', handleFocus);
+    };
+  }, [currentStep, selectedType]);
 
   const selectedNode =
     selectedNodeType === 'trigger'
@@ -379,24 +437,54 @@ export function StepConfigPanel() {
     return null;
   }
 
+  const currentStepOrder = selectedNode && selectedNodeType === 'action' 
+    ? actions.find((a) => a.id === selectedNodeId)?.order ?? null
+    : null;
+
   return (
-    <div className="fixed right-0 top-0 h-full w-120 border-l border-gray-200 bg-white shadow-xl">
-      <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {getNodeTitle()}
-            </h2>
+    <>
+      <div 
+        ref={configPanelRef}
+        className="fixed right-0 top-20 bottom-20 right-5 w-120 border border-gray-200 bg-white shadow-xl"
+        data-config-panel
+      >
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {getNodeTitle()}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!isAvailableDataPanelOpen && configPanelRef.current) {
+                    // Calculate position relative to StepConfigPanel
+                    const rect = configPanelRef.current.getBoundingClientRect();
+                    setAvailableDataPanelPosition({
+                      x: rect.left + 80,
+                      y: rect.top + 65,
+                    });
+                  }
+                  setIsAvailableDataPanelOpen(!isAvailableDataPanelOpen);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+                aria-label="Toggle Available Data Panel"
+                title="Available Data"
+              >
+                <Database className="h-4 w-4" />
+                <span>Available Data</span>
+              </button>
+              <button
+                onClick={closeConfigPanel}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close panel"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={closeConfigPanel}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Close panel"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
 
         {/* Step Navigation */}
         <StepNavigation steps={steps} onStepClick={handleStepClick} />
@@ -592,5 +680,18 @@ export function StepConfigPanel() {
         </div>
       </div>
     </div>
+    
+    {/* Draggable Available Data Panel */}
+    <DraggableAvailableDataPanel
+      trigger={trigger}
+      actions={actions}
+      currentStepOrder={currentStepOrder}
+      onFieldClick={handleAvailableDataFieldClick}
+      isOpen={isAvailableDataPanelOpen}
+      onClose={() => setIsAvailableDataPanelOpen(false)}
+      position={availableDataPanelPosition}
+      onPositionChange={setAvailableDataPanelPosition}
+    />
+    </>
   );
 }

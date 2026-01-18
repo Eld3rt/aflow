@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@aflow/web/shared/lib/cn';
+import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 interface DatabaseConfigureStepProps {
   databaseType: 'postgres' | 'mysql';
@@ -18,10 +20,7 @@ const getSchema = (operation: string) => {
     connection: z.object({
       host: z.string().min(1, 'Host is required'),
       port: z
-        .number({
-          required_error: 'Port is required',
-          invalid_type_error: 'Port must be a number',
-        })
+        .number()
         .int('Port must be an integer')
         .min(1, 'Port must be at least 1')
         .max(65535, 'Port must be at most 65535'),
@@ -30,27 +29,37 @@ const getSchema = (operation: string) => {
       password: z.string().min(1, 'Password is required'),
     }),
     table: z.string().min(1, 'Table name is required'),
-    operation: z.enum(['insert', 'update', 'select'], {
-      required_error: 'Operation is required',
-    }),
+    operation: z.enum(['insert', 'update', 'select']),
   });
 
   if (operation === 'insert') {
     return baseSchema.extend({
-      data: z.record(z.unknown()).min(1, 'Data is required for insert operation'),
+      data: z
+        .record(z.string(), z.unknown())
+        .refine((val) => Object.keys(val).length > 0, {
+          message: 'Data is required for insert operation',
+        }),
     });
   }
 
   if (operation === 'update') {
     return baseSchema.extend({
-      data: z.record(z.unknown()).min(1, 'Data is required for update operation'),
-      where: z.record(z.unknown()).min(1, 'Where clause is required for update operation'),
+      data: z
+        .record(z.string(), z.unknown())
+        .refine((val) => Object.keys(val).length > 0, {
+          message: 'Data is required for update operation',
+        }),
+      where: z
+        .record(z.string(), z.unknown())
+        .refine((val) => Object.keys(val).length > 0, {
+          message: 'Where clause is required for update operation',
+        }),
     });
   }
 
   // select operation
   return baseSchema.extend({
-    where: z.record(z.unknown()).optional(),
+    where: z.record(z.string(), z.unknown()).optional(),
   });
 };
 
@@ -64,11 +73,39 @@ export function DatabaseConfigureStep({
   const [dataFields, setDataFields] = useState<Array<{ key: string; value: string }>>([]);
   const [whereFields, setWhereFields] = useState<Array<{ key: string; value: string }>>([]);
 
+  const trigger = useEditorStore((state) => state.trigger);
+  const actions = useEditorStore((state) => state.actions);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const currentStep = actions.find((a) => a.id === selectedNodeId);
+  const currentStepOrder = currentStep?.order ?? null;
+
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Track the last focused input/textarea element
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  const handleFieldClick = (path: string) => {
+    // Use tracked element if available, otherwise fall back to document.activeElement
+    const targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
+    }
+  };
+
+  // Handler to track focused elements
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    lastFocusedElementRef.current = e.target;
+  };
+
   // Initialize form with default schema (will update when operation changes)
   const {
     register,
     handleSubmit,
-    reset,
     watch,
     formState: { errors, isValid },
   } = useForm<DatabaseFormData>({
@@ -114,24 +151,6 @@ export function DatabaseConfigureStep({
     }
   }, [initialValues]);
 
-  // Reset form when initialValues change
-  useEffect(() => {
-    if (initialValues) {
-      const connection = initialValues.connection as Record<string, unknown> | undefined;
-      reset({
-        connection: {
-          host: (connection?.host as string) || '',
-          port: (connection?.port as number) || (databaseType === 'postgres' ? 5432 : 3306),
-          database: (connection?.database as string) || '',
-          user: (connection?.user as string) || '',
-          password: (connection?.password as string) || '',
-        },
-        table: (initialValues.table as string) || '',
-        operation: (initialValues.operation as 'insert' | 'update' | 'select') || 'select',
-      });
-    }
-  }, [initialValues, reset, databaseType]);
-
   const addDataField = () => {
     setDataFields([...dataFields, { key: '', value: '' }]);
   };
@@ -142,7 +161,10 @@ export function DatabaseConfigureStep({
 
   const updateDataField = (index: number, field: 'key' | 'value', value: string) => {
     const updated = [...dataFields];
-    updated[index] = { ...updated[index], [field]: value };
+    const currentField = updated[index];
+    if (currentField) {
+      updated[index] = { key: currentField.key, value: currentField.value, [field]: value };
+    }
     setDataFields(updated);
   };
 
@@ -156,7 +178,10 @@ export function DatabaseConfigureStep({
 
   const updateWhereField = (index: number, field: 'key' | 'value', value: string) => {
     const updated = [...whereFields];
-    updated[index] = { ...updated[index], [field]: value };
+    const currentField = updated[index];
+    if (currentField) {
+      updated[index] = { key: currentField.key, value: currentField.value, [field]: value };
+    }
     setWhereFields(updated);
   };
 
@@ -419,7 +444,8 @@ export function DatabaseConfigureStep({
                         onChange={(e) =>
                           updateDataField(index, 'value', e.target.value)
                         }
-                        placeholder="Value"
+                        onFocus={handleInputFocus}
+                        placeholder={'Value or {{placeholder}}'}
                         className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                       />
                       <button
@@ -483,7 +509,8 @@ export function DatabaseConfigureStep({
                         onChange={(e) =>
                           updateWhereField(index, 'value', e.target.value)
                         }
-                        placeholder="Value"
+                        onFocus={handleInputFocus}
+                        placeholder={'Value or {{placeholder}}'}
                         className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                       />
                       <button

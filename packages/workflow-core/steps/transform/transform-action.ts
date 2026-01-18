@@ -3,6 +3,7 @@ import type {
   StepExecutor,
   StepExecutionResult,
 } from '../../index.js';
+import { templateString } from '../../template.js';
 
 /**
  * Transform action executor.
@@ -17,7 +18,7 @@ import type {
 export class TransformActionExecutor implements StepExecutor {
   async execute(
     config: Record<string, unknown>,
-    _context: ExecutionContext,
+    context: ExecutionContext,
   ): Promise<StepExecutionResult> {
     // Validate required config fields
     if (!config.type || typeof config.type !== 'string') {
@@ -34,21 +35,33 @@ export class TransformActionExecutor implements StepExecutor {
 
     const type = config.type as string;
     const operation = config.operation as string;
-    const input = config.input;
-    const format = config.format as string | undefined;
+    // Template input field from context (e.g., "{{body}}" -> actual body value)
+    const inputRaw = config.input;
+    const input =
+      inputRaw !== null && inputRaw !== undefined
+        ? typeof inputRaw === 'string'
+          ? templateString(inputRaw, context)
+          : inputRaw
+        : inputRaw;
+    // Template format field from context if present
+    const formatRaw = config.format;
+    const format =
+      formatRaw && typeof formatRaw === 'string'
+        ? templateString(formatRaw, context)
+        : (formatRaw as string | undefined);
 
     // Route to appropriate formatter based on type
     let result: unknown;
     try {
       switch (type) {
         case 'text':
-          result = this.executeTextOperation(operation, input, config);
+          result = this.executeTextOperation(operation, input, config, context);
           break;
         case 'number':
-          result = this.executeNumberOperation(operation, input, config);
+          result = this.executeNumberOperation(operation, input, config, context);
           break;
         case 'date':
-          result = this.executeDateOperation(operation, input, format, config);
+          result = this.executeDateOperation(operation, input, format, config, context);
           break;
         default:
           throw new Error(
@@ -89,6 +102,7 @@ export class TransformActionExecutor implements StepExecutor {
     operation: string,
     input: unknown,
     config: Record<string, unknown>,
+    context: ExecutionContext,
   ): unknown {
     if (input === null || input === undefined) {
       throw new Error('Text operation input cannot be null or undefined');
@@ -107,8 +121,11 @@ export class TransformActionExecutor implements StepExecutor {
         return str.trim();
 
       case 'replace': {
-        const search = config.search as string | undefined;
-        const replace = (config.replace as string | undefined) ?? '';
+        // Template search and replace fields from context
+        const searchRaw = config.search as string | undefined;
+        const replaceRaw = config.replace as string | undefined;
+        const search = searchRaw ? templateString(searchRaw, context) : undefined;
+        const replace = replaceRaw ? templateString(replaceRaw, context) : '';
         if (!search) {
           throw new Error('Text replace operation requires "search" field');
         }
@@ -142,6 +159,7 @@ export class TransformActionExecutor implements StepExecutor {
     operation: string,
     input: unknown,
     config: Record<string, unknown>,
+    context: ExecutionContext,
   ): unknown {
     switch (operation) {
       case 'formatNumber': {
@@ -151,14 +169,20 @@ export class TransformActionExecutor implements StepExecutor {
           );
         }
 
-        const inputDecimalMark = config.inputDecimalMark as string | undefined;
+        let inputDecimalMark = config.inputDecimalMark as string | undefined;
+        if (typeof inputDecimalMark === 'string') {
+          inputDecimalMark = templateString(inputDecimalMark, context);
+        }
         if (!inputDecimalMark || (inputDecimalMark !== 'Comma' && inputDecimalMark !== 'Period')) {
           throw new Error(
             'Number formatNumber operation requires "inputDecimalMark" field as "Comma" or "Period"',
           );
         }
 
-        const toFormat = config.toFormat as string | undefined;
+        let toFormat = config.toFormat as string | undefined;
+        if (typeof toFormat === 'string') {
+          toFormat = templateString(toFormat, context);
+        }
         const validFormats = [
           'Comma for grouping & period for decimal',
           'Period for grouping & comma for decimal',
@@ -185,7 +209,10 @@ export class TransformActionExecutor implements StepExecutor {
           );
         }
 
-        const toFormat = config.toFormat as string | undefined;
+        let toFormat = config.toFormat as string | undefined;
+        if (typeof toFormat === 'string') {
+          toFormat = templateString(toFormat, context);
+        }
         const validFormats = [
           '+15558001212',
           '+1 555-800-1212',
@@ -213,7 +240,10 @@ export class TransformActionExecutor implements StepExecutor {
           );
         }
 
-        const mathOperation = config.operation as string | undefined;
+        let mathOperation = config.operation as string | undefined;
+        if (typeof mathOperation === 'string') {
+          mathOperation = templateString(mathOperation, context);
+        }
         const validOperations = ['Add', 'Subtract', 'Multiply', 'Divide', 'Make Negative'];
         if (!mathOperation || !validOperations.includes(mathOperation)) {
           throw new Error(
@@ -226,7 +256,7 @@ export class TransformActionExecutor implements StepExecutor {
           throw new Error(`Cannot convert "${input}" to number`);
         }
 
-        return this.performMathOperation(num, mathOperation, config);
+        return this.performMathOperation(num, mathOperation, config, context);
       }
 
       case 'randomNumber': {
@@ -461,10 +491,16 @@ export class TransformActionExecutor implements StepExecutor {
     num: number,
     operation: string,
     config: Record<string, unknown>,
+    context: ExecutionContext,
   ): number {
     switch (operation) {
       case 'Add': {
-        const operand = config.operand as number | undefined;
+        let operand = config.operand;
+        // Template operand if it's a string (e.g., "{{someNumber}}")
+        if (typeof operand === 'string') {
+          const templatedOperand = templateString(operand, context);
+          operand = Number(templatedOperand);
+        }
         if (operand === undefined || typeof operand !== 'number') {
           throw new Error(
             'Number performMathOperation Add requires "operand" field as number',
@@ -474,7 +510,12 @@ export class TransformActionExecutor implements StepExecutor {
       }
 
       case 'Subtract': {
-        const operand = config.operand as number | undefined;
+        let operand = config.operand;
+        // Template operand if it's a string (e.g., "{{someNumber}}")
+        if (typeof operand === 'string') {
+          const templatedOperand = templateString(operand, context);
+          operand = Number(templatedOperand);
+        }
         if (operand === undefined || typeof operand !== 'number') {
           throw new Error(
             'Number performMathOperation Subtract requires "operand" field as number',
@@ -484,7 +525,12 @@ export class TransformActionExecutor implements StepExecutor {
       }
 
       case 'Multiply': {
-        const operand = config.operand as number | undefined;
+        let operand = config.operand;
+        // Template operand if it's a string (e.g., "{{someNumber}}")
+        if (typeof operand === 'string') {
+          const templatedOperand = templateString(operand, context);
+          operand = Number(templatedOperand);
+        }
         if (operand === undefined || typeof operand !== 'number') {
           throw new Error(
             'Number performMathOperation Multiply requires "operand" field as number',
@@ -494,7 +540,12 @@ export class TransformActionExecutor implements StepExecutor {
       }
 
       case 'Divide': {
-        const operand = config.operand as number | undefined;
+        let operand = config.operand;
+        // Template operand if it's a string (e.g., "{{someNumber}}")
+        if (typeof operand === 'string') {
+          const templatedOperand = templateString(operand, context);
+          operand = Number(templatedOperand);
+        }
         if (operand === undefined || typeof operand !== 'number') {
           throw new Error(
             'Number performMathOperation Divide requires "operand" field as number',
@@ -536,6 +587,7 @@ export class TransformActionExecutor implements StepExecutor {
     input: unknown,
     format: string | undefined,
     config: Record<string, unknown>,
+    context: ExecutionContext,
   ): unknown {
     switch (operation) {
 
@@ -555,9 +607,6 @@ export class TransformActionExecutor implements StepExecutor {
 
         // Support common formats
         if (format === 'ISO') {
-          return date.toISOString();
-        }
-        if (format === 'RFC3339') {
           return date.toISOString();
         }
 
@@ -589,12 +638,14 @@ export class TransformActionExecutor implements StepExecutor {
         if (Number.isNaN(date.getTime())) {
           throw new Error(`Cannot parse "${input}" as date`);
         }
-        const expression = config.expression as string | undefined;
+        let expression = config.expression as string | undefined;
         if (!expression || typeof expression !== 'string') {
           throw new Error(
             'Date addOrSubtractTime operation requires "expression" field as string (e.g., "+8 hours 1 minute", "+1 month -2 days")',
           );
         }
+        // Template the expression (supports templates like "{{hours}} hours")
+        expression = templateString(expression, context);
 
         const result = new Date(date);
         this.applyTimeExpression(result, expression);

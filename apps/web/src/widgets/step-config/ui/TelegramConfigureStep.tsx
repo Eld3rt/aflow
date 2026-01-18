@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@aflow/web/shared/lib/cn';
+import { useEditorStore } from '@aflow/web/shared/stores/editor-store';
+import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 
 const telegramSchema = z.object({
   botToken: z.string().min(1, 'Bot token is required'),
@@ -23,10 +25,21 @@ export function TelegramConfigureStep({
   initialValues,
   onSave,
 }: TelegramConfigureStepProps) {
+  const trigger = useEditorStore((state) => state.trigger);
+  const actions = useEditorStore((state) => state.actions);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const currentStep = actions.find((a) => a.id === selectedNodeId);
+  const currentStepOrder = currentStep?.order ?? null;
+
+  const { insertTemplate } = useTemplateInsertion();
+
+  // Track the last focused input/textarea element
+  const lastFocusedElementRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isValid },
   } = useForm<TelegramFormData>({
     resolver: zodResolver(telegramSchema),
@@ -38,16 +51,22 @@ export function TelegramConfigureStep({
     mode: 'onChange',
   });
 
-  // Reset form when initialValues change (e.g., when reopening with saved config)
-  useEffect(() => {
-    if (initialValues) {
-      reset({
-        botToken: initialValues.botToken || '',
-        chatId: initialValues.chatId || '',
-        message: initialValues.message || '',
-      });
+  const handleFieldClick = (path: string) => {
+    // Use tracked element if available, otherwise fall back to document.activeElement
+    const targetElement = lastFocusedElementRef.current || document.activeElement;
+    
+    if (
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+    ) {
+      insertTemplate(targetElement, path);
     }
-  }, [initialValues, reset]);
+  };
+
+  // Handler to track focused elements
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    lastFocusedElementRef.current = e.target;
+  };
 
   const onSubmit = (data: TelegramFormData) => {
     onSave({
@@ -131,12 +150,14 @@ export function TelegramConfigureStep({
             </label>
             <textarea
               {...register('message')}
-              placeholder="Enter your message text"
+              onFocus={handleInputFocus}
+              placeholder={'Hello {{from}}, you have a new message: {{subject}}'}
               rows={8}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black resize-y"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Message text. Supports templating from workflow context.
+              Message text. Use placeholders from Available Data panel. Values
+              will be resolved when the workflow runs.
             </p>
             {errors.message && (
               <p className="mt-1 text-xs text-red-600">

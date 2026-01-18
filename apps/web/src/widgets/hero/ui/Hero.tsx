@@ -18,7 +18,7 @@ export function Hero() {
             automations handle the rest.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <SignUpButton mode="modal">
+            <SignUpButton fallbackRedirectUrl='/app/dashboard' mode="modal">
               <button className="flex items-center gap-2 cursor-pointer rounded-lg bg-gray-900 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-gray-800">
                 Start automating
                 <ArrowRight className="h-5 w-5" />

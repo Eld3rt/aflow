@@ -23,7 +23,7 @@ import { useTemplateInsertion } from '../hooks/useTemplateInsertion';
 type ConfigStep = 'setup' | 'configure';
 
 // Email generation utility
-const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_INBOUND_EMAIL_DOMAIN || 'inbound.aflow.app';
+const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_INBOUND_EMAIL_DOMAIN;
 const EMAIL_PREFIX = 'notify';
 
 function generateBase36(length: number): string {
